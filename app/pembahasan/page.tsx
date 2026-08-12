@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '../utils/supabase'
 
-export default function PembahasanPage() {
+function PembahasanContent() {
   const searchParams = useSearchParams()
   const hasilId = searchParams.get('hasil')
 
@@ -14,6 +14,11 @@ export default function PembahasanPage() {
 
   useEffect(() => {
     const fetchPembahasan = async () => {
+      if (!hasilId) {
+        setLoading(false)
+        return
+      }
+
       const { data, error } = await supabase
         .from('jawaban_user')
         .select('*, soal(*)')
@@ -26,7 +31,7 @@ export default function PembahasanPage() {
       setLoading(false)
     }
 
-    if (hasilId) fetchPembahasan()
+    fetchPembahasan()
   }, [hasilId])
 
   if (loading) {
@@ -259,7 +264,9 @@ export default function PembahasanPage() {
                   </p>
 
                   <p className="mt-1 text-lg font-extrabold text-[#2563EB]">
-                    {soal.jawaban_benar.toUpperCase()}
+                    {soal.jawaban_benar
+                      ? soal.jawaban_benar.toUpperCase()
+                      : '-'}
                   </p>
                 </div>
 
@@ -323,6 +330,7 @@ export default function PembahasanPage() {
                   <p className="text-[10px] font-bold text-emerald-600">
                     BENAR
                   </p>
+
                   <p className="mt-1 text-xl font-extrabold text-emerald-700">
                     {jumlahBenar}
                   </p>
@@ -332,6 +340,7 @@ export default function PembahasanPage() {
                   <p className="text-[10px] font-bold text-red-500">
                     SALAH
                   </p>
+
                   <p className="mt-1 text-xl font-extrabold text-red-600">
                     {jumlahSalah}
                   </p>
@@ -367,6 +376,7 @@ export default function PembahasanPage() {
               </div>
 
               <div className="mt-4 space-y-2 border-t border-slate-100 pt-4">
+
                 <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
                   <span className="h-3 w-3 rounded bg-emerald-500" />
                   Jawaban benar
@@ -376,6 +386,7 @@ export default function PembahasanPage() {
                   <span className="h-3 w-3 rounded bg-red-500" />
                   Jawaban salah
                 </div>
+
               </div>
 
             </div>
@@ -417,5 +428,26 @@ export default function PembahasanPage() {
 
       </div>
     </main>
+  )
+}
+
+export default function PembahasanPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-slate-50 px-5 py-10">
+          <div className="mx-auto flex min-h-[500px] max-w-6xl items-center justify-center">
+            <div className="text-center">
+              <div className="mx-auto h-9 w-9 animate-spin rounded-full border-[3px] border-[#D6ECFD] border-t-[#2563EB]" />
+              <p className="mt-4 text-sm font-bold text-slate-500">
+                Memuat pembahasan...
+              </p>
+            </div>
+          </div>
+        </main>
+      }
+    >
+      <PembahasanContent />
+    </Suspense>
   )
 }

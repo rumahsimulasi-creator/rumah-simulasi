@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '../utils/supabase'
 
-export default function UjianPage() {
+function UjianContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const paketId = searchParams.get('paket')
@@ -814,5 +814,26 @@ export default function UjianPage() {
       )}
 
     </main>
+  )
+}
+
+export default function UjianPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-slate-50 px-5 py-10">
+          <div className="mx-auto flex min-h-[500px] max-w-6xl items-center justify-center">
+            <div className="text-center">
+              <div className="mx-auto h-9 w-9 animate-spin rounded-full border-[3px] border-[#D6ECFD] border-t-[#2563EB]" />
+              <p className="mt-4 text-sm font-bold text-slate-500">
+                Memuat halaman ujian...
+              </p>
+            </div>
+          </div>
+        </main>
+      }
+    >
+      <UjianContent />
+    </Suspense>
   )
 }
