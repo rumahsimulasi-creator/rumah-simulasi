@@ -6,6 +6,7 @@ import { supabase } from '../utils/supabase'
 
 export default function PaketSayaPage() {
   const [paketList, setPaketList] = useState<any[]>([])
+  const [ebookList, setEbookList] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
@@ -35,6 +36,22 @@ export default function PaketSayaPage() {
       })
 
       setPaketList(paketDimiliki)
+
+      const { data: ebookData } = await supabase
+        .from('ebook')
+        .select('*')
+
+      const { data: pembelianEbookData } = await supabase
+        .from('pembelian_ebook')
+        .select('ebook_id')
+        .eq('user_id', userId)
+        .eq('status', 'lunas')
+
+      const ebookDimiliki = (ebookData || []).filter((e) =>
+        pembelianEbookData?.some((pb) => pb.ebook_id === e.id)
+      )
+
+      setEbookList(ebookDimiliki)
       setLoading(false)
     }
 
@@ -95,10 +112,10 @@ export default function PaketSayaPage() {
 
               <div className="rounded-xl border border-[#dce7f4] bg-white px-5 py-3 shadow-[0_4px_14px_rgba(31,55,84,0.04)]">
                 <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#7a8ca3]">
-                  Akses
+                  Ebook Dimiliki
                 </p>
                 <p className="mt-0.5 text-xl font-black text-[#2563eb]">
-                  Aktif
+                  {ebookList.length}
                 </p>
               </div>
 
@@ -435,6 +452,82 @@ export default function PaketSayaPage() {
 
           </>
         )}
+
+        {/* EBOOK SAYA */}
+        <section className="pt-14">
+
+          <div className="mb-6 flex items-end justify-between">
+
+            <div>
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#2563eb]">
+                Koleksi Bacaan
+              </p>
+
+              <h2 className="mt-2 text-3xl font-black tracking-tight text-[#0f2744]">
+                Ebook yang Kamu Miliki
+              </h2>
+
+              <p className="mt-2 text-sm font-medium text-[#64748b]">
+                Baca langsung atau download ebook yang sudah kamu beli.
+              </p>
+            </div>
+
+            <span className="hidden rounded-full border border-[#dce5ef] bg-white px-4 py-2 text-xs font-extrabold text-[#52657d] sm:block">
+              {ebookList.length} Ebook
+            </span>
+
+          </div>
+
+          {ebookList.length === 0 ? (
+            <div className="rounded-[22px] border border-[#dfe6ee] bg-white px-6 py-16 text-center shadow-[0_8px_24px_rgba(31,55,84,0.05)]">
+              <p className="text-sm font-bold text-[#64748b]">
+                Kamu belum memiliki ebook.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto pb-5 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[#cbd5e1]">
+              <div className="flex w-max gap-5">
+                {ebookList.map((ebook) => (
+                  <article
+                    key={ebook.id}
+                    className="flex w-[300px] shrink-0 flex-col overflow-hidden rounded-[20px] border border-[#dfe6ee] bg-white shadow-[0_10px_28px_rgba(31,55,84,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_14px_32px_rgba(31,55,84,0.11)]"
+                  >
+                    {ebook.sampul_gambar && (
+                      <img
+                        src={ebook.sampul_gambar}
+                        alt={ebook.judul}
+                        className="h-40 w-full object-cover"
+                      />
+                    )}
+
+                    <div className="flex flex-1 flex-col px-5 pb-5 pt-4">
+                      <h3 className="line-clamp-2 text-base font-black leading-6 text-[#17243a]">
+                        {ebook.judul}
+                      </h3>
+
+                      <p className="mt-1.5 line-clamp-2 text-sm font-medium leading-5 text-[#687990]">
+                        {ebook.deskripsi}
+                      </p>
+
+                      <a
+                        href={ebook.link_drive}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-4 flex w-full items-center justify-between rounded-xl bg-[#2563eb] px-5 py-3 text-sm font-black text-white shadow-[0_6px_14px_rgba(37,99,235,0.16)] transition hover:bg-[#1d4ed8]"
+                      >
+                        <span>Baca / Download</span>
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-base">
+                          →
+                        </span>
+                      </a>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </section>
 
       </div>
     </main>

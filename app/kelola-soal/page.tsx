@@ -60,6 +60,8 @@ export default function KelolaSoalPage() {
     setEditData({ ...soal })
   }
 
+  const isTKPEdit = editData.kategori === 'TKP'
+
   const simpanEdit = async (id: string) => {
     const { error } = await supabase
       .from('soal')
@@ -72,7 +74,12 @@ export default function KelolaSoalPage() {
         pilihan_c_teks: editData.pilihan_c_teks,
         pilihan_d_teks: editData.pilihan_d_teks,
         pilihan_e_teks: editData.pilihan_e_teks,
-        jawaban_benar: editData.jawaban_benar,
+        jawaban_benar: isTKPEdit ? null : editData.jawaban_benar,
+        bobot_a: isTKPEdit ? Number(editData.bobot_a) : null,
+        bobot_b: isTKPEdit ? Number(editData.bobot_b) : null,
+        bobot_c: isTKPEdit ? Number(editData.bobot_c) : null,
+        bobot_d: isTKPEdit ? Number(editData.bobot_d) : null,
+        bobot_e: isTKPEdit ? Number(editData.bobot_e) : null,
         pembahasan_teks: editData.pembahasan_teks,
       })
       .eq('id', id)
@@ -128,17 +135,30 @@ export default function KelolaSoalPage() {
                       value={editData[`pilihan_${huruf}_teks`] || ''}
                       onChange={(e) => setEditData({ ...editData, [`pilihan_${huruf}_teks`]: e.target.value })}
                     />
+                    {isTKPEdit && (
+                      <input
+                        type="number"
+                        placeholder={`Bobot ${huruf.toUpperCase()}`}
+                        style={inputStyle}
+                        value={editData[`bobot_${huruf}`] ?? ''}
+                        onChange={(e) => setEditData({ ...editData, [`bobot_${huruf}`]: e.target.value })}
+                      />
+                    )}
                   </div>
                 ))}
 
-                <label>Jawaban Benar</label>
-                <select style={inputStyle} value={editData.jawaban_benar} onChange={(e) => setEditData({ ...editData, jawaban_benar: e.target.value })}>
-                  <option value="a">A</option>
-                  <option value="b">B</option>
-                  <option value="c">C</option>
-                  <option value="d">D</option>
-                  <option value="e">E</option>
-                </select>
+                {!isTKPEdit && (
+                  <>
+                    <label>Jawaban Benar</label>
+                    <select style={inputStyle} value={editData.jawaban_benar || 'a'} onChange={(e) => setEditData({ ...editData, jawaban_benar: e.target.value })}>
+                      <option value="a">A</option>
+                      <option value="b">B</option>
+                      <option value="c">C</option>
+                      <option value="d">D</option>
+                      <option value="e">E</option>
+                    </select>
+                  </>
+                )}
 
                 <label>Pembahasan</label>
                 <textarea style={inputStyle} value={editData.pembahasan_teks || ''} onChange={(e) => setEditData({ ...editData, pembahasan_teks: e.target.value })} />
@@ -152,7 +172,11 @@ export default function KelolaSoalPage() {
               <div>
                 <p><strong>Soal {index + 1} ({soal.kategori})</strong></p>
                 <p>{soal.pertanyaan_teks}</p>
-                <p>Jawaban benar: {soal.jawaban_benar?.toUpperCase()}</p>
+                {soal.kategori === 'TKP' ? (
+                  <p>Bobot: A={soal.bobot_a} B={soal.bobot_b} C={soal.bobot_c} D={soal.bobot_d} E={soal.bobot_e}</p>
+                ) : (
+                  <p>Jawaban benar: {soal.jawaban_benar?.toUpperCase()}</p>
+                )}
 
                 <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                   <button onClick={() => mulaiEdit(soal)} style={{ padding: '6px 12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px' }}>Edit</button>

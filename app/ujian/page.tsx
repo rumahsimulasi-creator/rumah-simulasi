@@ -28,11 +28,18 @@ function UjianContent() {
     twk: 0,
     tiu: 0,
     tkp: 0,
+    lulus: false,
   })
 
   const [menyimpan, setMenyimpan] = useState(false)
 
-  const PASSING_GRADE = 311
+  // ATURAN PASSING GRADE (terpusat di sini)
+  const PASSING_GRADE = {
+    total: 311,
+    twk: 65,
+    tiu: 80,
+    tkp: 166,
+  }
 
   // =========================
   // AMBIL DATA PAKET + SOAL
@@ -156,35 +163,58 @@ function UjianContent() {
 
     setMenyimpan(true)
 
-    let totalBenar = 0
     let twk = 0
     let tiu = 0
     let tkp = 0
 
-    soalList.forEach((soal) => {
-      const benar = jawaban[soal.id] === soal.jawaban_benar
+    const jawabanRows = soalList.map((soal) => {
+      const kategori = String(soal.kategori || '').toUpperCase()
+      const pilihanUser = jawaban[soal.id] || null
 
-      if (benar) {
-        totalBenar++
+      let poin = 0
+      let benar: boolean | null = null
 
-        const kategori = String(soal.kategori || '').toLowerCase()
-
-        if (kategori.includes('twk')) {
-          twk++
-        } else if (kategori.includes('tiu')) {
-          tiu++
-        } else if (kategori.includes('tkp')) {
-          tkp++
+      if (kategori === 'TKP') {
+        if (pilihanUser) {
+          poin = Number(soal[`bobot_${pilihanUser}`]) || 0
         }
+        tkp += poin
+        benar = null // konsep benar/salah tidak berlaku untuk TKP
+      } else {
+        // TWK / TIU
+        benar = pilihanUser === soal.jawaban_benar
+        poin = benar ? 5 : 0
+
+        if (kategori === 'TWK') twk += poin
+        if (kategori === 'TIU') tiu += poin
+      }
+
+      return {
+        soal_id: soal.id,
+        jawaban_dipilih: pilihanUser,
+        benar,
+        poin,
       }
     })
+
+    const total = twk + tiu + tkp
+
+    const lulus =
+      total >= PASSING_GRADE.total &&
+      twk >= PASSING_GRADE.twk &&
+      tiu >= PASSING_GRADE.tiu &&
+      tkp >= PASSING_GRADE.tkp
 
     const { data: hasilData, error: hasilError } = await supabase
       .from('hasil_ujian')
       .insert({
         user_id: userId,
         paket_id: paketId,
-        skor: totalBenar,
+        skor: total,
+        skor_twk: twk,
+        skor_tiu: tiu,
+        skor_tkp: tkp,
+        lulus,
       })
       .select()
       .single()
@@ -195,16 +225,16 @@ function UjianContent() {
       return
     }
 
-    const jawabanRows = soalList.map((soal) => ({
+    const jawabanRowsFinal = jawabanRows.map((row) => ({
       hasil_ujian_id: hasilData.id,
-      soal_id: soal.id,
-      jawaban_dipilih: jawaban[soal.id] || null,
-      benar: jawaban[soal.id] === soal.jawaban_benar,
+      soal_id: row.soal_id,
+      jawaban_dipilih: row.jawaban_dipilih,
+      benar: row.benar,
     }))
 
     const { error: jawabanError } = await supabase
       .from('jawaban_user')
-      .insert(jawabanRows)
+      .insert(jawabanRowsFinal)
 
     if (jawabanError) {
       alert(jawabanError.message)
@@ -215,10 +245,11 @@ function UjianContent() {
     setHasilId(hasilData.id)
 
     setHasilUjian({
-      total: totalBenar,
+      total,
       twk,
       tiu,
       tkp,
+      lulus,
     })
 
     setShowHasil(true)
@@ -660,7 +691,7 @@ function UjianContent() {
                 </p>
 
                 <p className="mt-1 text-sm font-bold text-slate-400">
-                  dari {soalList.length} soal
+                  dari 550 poin maksimal
                 </p>
 
               </div>
@@ -678,6 +709,10 @@ function UjianContent() {
                     {hasilUjian.twk}
                   </p>
 
+                  <p className="mt-1 text-[10px] font-bold text-slate-400">
+                    min. {PASSING_GRADE.twk}
+                  </p>
+
                 </div>
 
                 <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
@@ -688,6 +723,10 @@ function UjianContent() {
 
                   <p className="mt-2 text-2xl font-black text-slate-900">
                     {hasilUjian.tiu}
+                  </p>
+
+                  <p className="mt-1 text-[10px] font-bold text-slate-400">
+                    min. {PASSING_GRADE.tiu}
                   </p>
 
                 </div>
@@ -702,6 +741,10 @@ function UjianContent() {
                     {hasilUjian.tkp}
                   </p>
 
+                  <p className="mt-1 text-[10px] font-bold text-slate-400">
+                    min. {PASSING_GRADE.tkp}
+                  </p>
+
                 </div>
 
               </div>
@@ -709,7 +752,7 @@ function UjianContent() {
               {/* STATUS PASSING GRADE */}
               <div
                 className={`mt-5 rounded-2xl border p-5 ${
-                  hasilUjian.total >= PASSING_GRADE
+                  hasilUjian.lulus
                     ? 'border-emerald-200 bg-emerald-50'
                     : 'border-red-200 bg-red-50'
                 }`}
@@ -719,32 +762,32 @@ function UjianContent() {
 
                   <div
                     className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-black ${
-                      hasilUjian.total >= PASSING_GRADE
+                      hasilUjian.lulus
                         ? 'bg-emerald-500 text-white'
                         : 'bg-red-500 text-white'
                     }`}
                   >
-                    {hasilUjian.total >= PASSING_GRADE ? '✓' : '×'}
+                    {hasilUjian.lulus ? '✓' : '×'}
                   </div>
 
                   <div>
 
                     <p
                       className={`text-sm font-extrabold ${
-                        hasilUjian.total >= PASSING_GRADE
+                        hasilUjian.lulus
                           ? 'text-emerald-700'
                           : 'text-red-700'
                       }`}
                     >
-                      {hasilUjian.total >= PASSING_GRADE
+                      {hasilUjian.lulus
                         ? 'LULUS PASSING GRADE'
                         : 'BELUM LULUS PASSING GRADE'}
                     </p>
 
                     <p className="mt-1 text-sm font-medium leading-5 text-slate-600">
-                      {hasilUjian.total >= PASSING_GRADE
-                        ? 'Nilai kamu sudah memenuhi batas passing grade yang ditentukan.'
-                        : 'Nilai kamu belum memenuhi batas passing grade yang ditentukan.'}
+                      {hasilUjian.lulus
+                        ? 'Nilai kamu sudah memenuhi seluruh batas passing grade (total & tiap subtes).'
+                        : 'Nilai kamu belum memenuhi seluruh batas passing grade (total & tiap subtes).'}
                     </p>
 
                   </div>
@@ -756,11 +799,11 @@ function UjianContent() {
                   <div>
 
                     <p className="font-semibold text-slate-400">
-                      Passing Grade
+                      Passing Grade Total
                     </p>
 
                     <p className="mt-1 font-extrabold text-slate-800">
-                      {PASSING_GRADE}
+                      {PASSING_GRADE.total}
                     </p>
 
                   </div>

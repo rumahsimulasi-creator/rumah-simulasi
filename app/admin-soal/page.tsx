@@ -44,6 +44,11 @@ export default function AdminSoalPage() {
   const [pilihanETeks, setPilihanETeks] = useState('')
   const [pilihanEGambar, setPilihanEGambar] = useState('')
   const [jawabanBenar, setJawabanBenar] = useState('a')
+  const [bobotA, setBobotA] = useState('')
+  const [bobotB, setBobotB] = useState('')
+  const [bobotC, setBobotC] = useState('')
+  const [bobotD, setBobotD] = useState('')
+  const [bobotE, setBobotE] = useState('')
   const [pembahasanTeks, setPembahasanTeks] = useState('')
   const [pembahasanGambar, setPembahasanGambar] = useState('')
 
@@ -54,6 +59,8 @@ export default function AdminSoalPage() {
     }
     fetchPaket()
   }, [])
+
+  const isTKP = kategori === 'TKP'
 
   const handleTambahSoal = async () => {
     const { error } = await supabase.from('soal').insert({
@@ -71,7 +78,12 @@ export default function AdminSoalPage() {
       pilihan_d_gambar: pilihanDGambar,
       pilihan_e_teks: pilihanETeks,
       pilihan_e_gambar: pilihanEGambar,
-      jawaban_benar: jawabanBenar,
+      jawaban_benar: isTKP ? null : jawabanBenar,
+      bobot_a: isTKP ? Number(bobotA) : null,
+      bobot_b: isTKP ? Number(bobotB) : null,
+      bobot_c: isTKP ? Number(bobotC) : null,
+      bobot_d: isTKP ? Number(bobotD) : null,
+      bobot_e: isTKP ? Number(bobotE) : null,
       pembahasan_teks: pembahasanTeks,
       pembahasan_gambar: pembahasanGambar,
     })
@@ -91,6 +103,11 @@ export default function AdminSoalPage() {
       setPilihanDGambar('')
       setPilihanETeks('')
       setPilihanEGambar('')
+      setBobotA('')
+      setBobotB('')
+      setBobotC('')
+      setBobotD('')
+      setBobotE('')
       setPembahasanTeks('')
       setPembahasanGambar('')
     }
@@ -129,35 +146,69 @@ export default function AdminSoalPage() {
         <input type="text" value={pilihanATeks} onChange={(e) => setPilihanATeks(e.target.value)} style={inputStyle} />
         <label>Pilihan A (link gambar, opsional)</label>
         <input type="text" value={pilihanAGambar} onChange={(e) => setPilihanAGambar(e.target.value)} style={inputStyle} />
+        {isTKP && (
+          <>
+            <label>Bobot Pilihan A</label>
+            <input type="number" value={bobotA} onChange={(e) => setBobotA(e.target.value)} style={inputStyle} />
+          </>
+        )}
 
         <label>Pilihan B (teks)</label>
         <input type="text" value={pilihanBTeks} onChange={(e) => setPilihanBTeks(e.target.value)} style={inputStyle} />
         <label>Pilihan B (link gambar, opsional)</label>
         <input type="text" value={pilihanBGambar} onChange={(e) => setPilihanBGambar(e.target.value)} style={inputStyle} />
+        {isTKP && (
+          <>
+            <label>Bobot Pilihan B</label>
+            <input type="number" value={bobotB} onChange={(e) => setBobotB(e.target.value)} style={inputStyle} />
+          </>
+        )}
 
         <label>Pilihan C (teks)</label>
         <input type="text" value={pilihanCTeks} onChange={(e) => setPilihanCTeks(e.target.value)} style={inputStyle} />
         <label>Pilihan C (link gambar, opsional)</label>
         <input type="text" value={pilihanCGambar} onChange={(e) => setPilihanCGambar(e.target.value)} style={inputStyle} />
+        {isTKP && (
+          <>
+            <label>Bobot Pilihan C</label>
+            <input type="number" value={bobotC} onChange={(e) => setBobotC(e.target.value)} style={inputStyle} />
+          </>
+        )}
 
         <label>Pilihan D (teks)</label>
         <input type="text" value={pilihanDTeks} onChange={(e) => setPilihanDTeks(e.target.value)} style={inputStyle} />
         <label>Pilihan D (link gambar, opsional)</label>
         <input type="text" value={pilihanDGambar} onChange={(e) => setPilihanDGambar(e.target.value)} style={inputStyle} />
+        {isTKP && (
+          <>
+            <label>Bobot Pilihan D</label>
+            <input type="number" value={bobotD} onChange={(e) => setBobotD(e.target.value)} style={inputStyle} />
+          </>
+        )}
 
         <label>Pilihan E (teks)</label>
         <input type="text" value={pilihanETeks} onChange={(e) => setPilihanETeks(e.target.value)} style={inputStyle} />
         <label>Pilihan E (link gambar, opsional)</label>
         <input type="text" value={pilihanEGambar} onChange={(e) => setPilihanEGambar(e.target.value)} style={inputStyle} />
+        {isTKP && (
+          <>
+            <label>Bobot Pilihan E</label>
+            <input type="number" value={bobotE} onChange={(e) => setBobotE(e.target.value)} style={inputStyle} />
+          </>
+        )}
 
-        <label>Jawaban Benar</label>
-        <select value={jawabanBenar} onChange={(e) => setJawabanBenar(e.target.value)} style={inputStyle}>
-          <option value="a">A</option>
-          <option value="b">B</option>
-          <option value="c">C</option>
-          <option value="d">D</option>
-          <option value="e">E</option>
-        </select>
+        {!isTKP && (
+          <>
+            <label>Jawaban Benar</label>
+            <select value={jawabanBenar} onChange={(e) => setJawabanBenar(e.target.value)} style={inputStyle}>
+              <option value="a">A</option>
+              <option value="b">B</option>
+              <option value="c">C</option>
+              <option value="d">D</option>
+              <option value="e">E</option>
+            </select>
+          </>
+        )}
 
         <label>Pembahasan (teks)</label>
         <textarea value={pembahasanTeks} onChange={(e) => setPembahasanTeks(e.target.value)} style={inputStyle} />
