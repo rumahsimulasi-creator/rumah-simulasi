@@ -27,6 +27,8 @@ const METODE_BAYAR = [
   },
 ]
 
+const NOMOR_WA_ADMIN = '62895403173470'
+
 export default function PaketPage() {
   const [paketList, setPaketList] = useState<any[]>([])
   const [pembelianList, setPembelianList] = useState<any[]>([])
@@ -35,6 +37,9 @@ export default function PaketPage() {
   const [paketTerpilih, setPaketTerpilih] = useState<any>(null)
   const [metodeTerpilih, setMetodeTerpilih] = useState<string | null>(null)
   const [memproses, setMemproses] = useState(false)
+
+  const [showPendaftaranModal, setShowPendaftaranModal] = useState(false)
+  const [paketPendaftaran, setPaketPendaftaran] = useState<any>(null)
 
   const router = useRouter()
 
@@ -72,6 +77,17 @@ export default function PaketPage() {
     return pembelianList.find(
       (p) => p.paket_id === paketId
     )
+  }
+
+  const getStatus = (paket: any) => {
+    const gratis = Number(paket.harga) === 0
+    const pembelian = getPembelian(paket.id)
+
+    if (gratis && paket.butuh_pendaftaran) {
+      return pembelian ? pembelian.status : 'belum_daftar'
+    }
+
+    return gratis ? 'gratis' : pembelian ? pembelian.status : 'belum_beli'
   }
 
   // =========================
@@ -164,7 +180,7 @@ export default function PaketPage() {
   }
 
   // =========================
-  // TUTUP POPUP
+  // TUTUP POPUP PEMBAYARAN
   // =========================
 
   const tutupModal = async () => {
@@ -175,11 +191,6 @@ export default function PaketPage() {
 
     const pembelian = getPembelian(paketTerpilih.id)
 
-    /*
-      Kalau user sudah memilih metode pembayaran,
-      lalu menutup popup, status dibuat
-      menunggu_konfirmasi.
-    */
     if (
       pembelian &&
       pembelian.status === 'belum_bayar' &&
@@ -203,6 +214,53 @@ export default function PaketPage() {
     setShowModal(false)
     setPaketTerpilih(null)
     setMetodeTerpilih(null)
+  }
+
+  // =========================
+  // ALUR PENDAFTARAN (paket gratis + butuh_pendaftaran)
+  // =========================
+
+  const bukaPendaftaran = async (paket: any) => {
+    const { data: userData } = await supabase.auth.getUser()
+    if (!userData.user) {
+      alert('Silakan login terlebih dahulu.')
+      router.push('/login')
+      return
+    }
+    setPaketPendaftaran(paket)
+    setShowPendaftaranModal(true)
+  }
+
+  const konfirmasiSyaratTerpenuhi = async () => {
+    if (!paketPendaftaran) return
+
+    const { data: userData } = await supabase.auth.getUser()
+    const userId = userData.user?.id
+    if (!userId) return
+
+    setMemproses(true)
+
+    const { error } = await supabase.from('pembelian').insert({
+      user_id: userId,
+      paket_id: paketPendaftaran.id,
+      status: 'menunggu_konfirmasi',
+    })
+
+    if (error) {
+      alert(error.message)
+      setMemproses(false)
+      return
+    }
+
+    setShowPendaftaranModal(false)
+    setPaketPendaftaran(null)
+    await fetchData()
+    setMemproses(false)
+  }
+
+  const linkWhatsappAdmin = (paket: any) => {
+    const pesan = `Halo admin, saya sudah melakukan syarat pendaftaran untuk paket "${paket.nama}", saya mau konfirmasi.`
+    return `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(pesan)}`
   }
 
   // =========================
@@ -264,13 +322,7 @@ export default function PaketPage() {
 
               {paketList.map((paket) => {
                 const gratis = Number(paket.harga) === 0
-                const pembelian = getPembelian(paket.id)
-
-                const status = gratis
-                  ? 'gratis'
-                  : pembelian
-                    ? pembelian.status
-                    : 'belum_beli'
+                const status = getStatus(paket)
 
                 return (
                   <div
@@ -287,6 +339,12 @@ export default function PaketPage() {
                       {gratis && (
                         <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-extrabold text-emerald-600">
                           GRATIS
+                        </span>
+                      )}
+
+                      {paket.butuh_pendaftaran && (
+                        <span className="rounded-full bg-amber-50 px-3 py-1 text-[11px] font-extrabold text-amber-600">
+                          PERLU DAFTAR
                         </span>
                       )}
                     </div>
@@ -340,15 +398,40 @@ export default function PaketPage() {
                     ) : status === 'menunggu_konfirmasi' ? (
 
                       /* MENUNGGU KONFIRMASI */
-                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center">
-                        <p className="text-sm font-extrabold text-amber-700">
-                          Menunggu Konfirmasi
-                        </p>
+                      <div className="space-y-2">
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center">
+                          <p className="text-sm font-extrabold text-amber-700">
+                            Menunggu Konfirmasi
+                          </p>
 
-                        <p className="mt-1 text-xs font-medium leading-5 text-amber-600">
-                          Pembayaran sedang diperiksa admin.
-                        </p>
+                          <p className="mt-1 text-xs font-medium leading-5 text-amber-600">
+                            Sedang diperiksa admin.
+                          </p>
+                        </div>
+
+                        <a
+                          href={linkWhatsappAdmin(paket)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-extrabold text-emerald-700 transition hover:bg-emerald-100"
+                        >
+                          Hubungi Admin
+                        </a>
                       </div>
+
+                    ) : status === 'belum_daftar' ? (
+
+                      /* DAFTAR (PAKET GRATIS BUTUH PENDAFTARAN) */
+                      <button
+                        onClick={() => bukaPendaftaran(paket)}
+                        className="flex w-full items-center justify-between rounded-xl bg-amber-500 px-5 py-3.5 text-sm font-extrabold text-white transition hover:bg-amber-600"
+                      >
+                        Daftar
+
+                        <span className="text-lg">
+                          →
+                        </span>
+                      </button>
 
                     ) : (
 
@@ -619,6 +702,64 @@ export default function PaketPage() {
                 </div>
               )}
 
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================================================= */}
+      {/* POPUP PENDAFTARAN (paket gratis butuh_pendaftaran) */}
+      {/* ================================================= */}
+
+      {showPendaftaranModal && paketPendaftaran && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 px-4 py-6 backdrop-blur-sm">
+
+          <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white shadow-2xl">
+
+            <div className="border-b border-slate-100 px-6 py-5 sm:px-7">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-extrabold uppercase tracking-wider text-amber-600">
+                    Syarat Pendaftaran
+                  </p>
+                  <h2 className="mt-1 text-xl font-extrabold text-slate-900">
+                    {paketPendaftaran.nama}
+                  </h2>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setShowPendaftaranModal(false)
+                    setPaketPendaftaran(null)
+                  }}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-lg font-bold text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 sm:p-7">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                <p className="text-sm font-extrabold text-amber-800">
+                  Syarat yang harus dipenuhi:
+                </p>
+                <p className="mt-2 whitespace-pre-line text-sm font-medium leading-6 text-amber-700">
+                  {paketPendaftaran.syarat_pendaftaran || 'Tidak ada syarat khusus.'}
+                </p>
+              </div>
+
+              <button
+                onClick={konfirmasiSyaratTerpenuhi}
+                disabled={memproses}
+                className="mt-5 w-full rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {memproses ? 'Mengirim...' : 'Saya Sudah Memenuhi Syarat'}
+              </button>
+
+              <p className="mt-3 text-center text-[11px] font-medium leading-5 text-slate-400">
+                Setelah ini, pendaftaran kamu akan diperiksa oleh admin.
+              </p>
             </div>
           </div>
         </div>

@@ -32,6 +32,8 @@ export default function AdminPage() {
   const [deskripsi, setDeskripsi] = useState('')
   const [waktu, setWaktu] = useState('')
   const [harga, setHarga] = useState('0')
+  const [butuhPendaftaran, setButuhPendaftaran] = useState(false)
+  const [syaratPendaftaran, setSyaratPendaftaran] = useState('')
 
   const handleTambahPaket = async () => {
     const { error } = await supabase.from('paket').insert({
@@ -39,6 +41,8 @@ export default function AdminPage() {
       deskripsi,
       waktu_menit: Number(waktu),
       harga: Number(harga),
+      butuh_pendaftaran: butuhPendaftaran,
+      syarat_pendaftaran: butuhPendaftaran ? syaratPendaftaran : null,
     })
     if (error) alert(error.message)
     else {
@@ -47,6 +51,8 @@ export default function AdminPage() {
       setDeskripsi('')
       setWaktu('')
       setHarga('0')
+      setButuhPendaftaran(false)
+      setSyaratPendaftaran('')
     }
   }
   if (checking) return <p style={{ padding: '24px' }}>Memeriksa akses...</p>
@@ -83,6 +89,28 @@ export default function AdminPage() {
           onChange={(e) => setHarga(e.target.value)}
           style={{ padding: '8px', border: '1px solid #9ca3af', borderRadius: '4px' }}
         />
+
+        <label style={{ fontSize: '14px', color: '#374151', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input
+            type="checkbox"
+            checked={butuhPendaftaran}
+            onChange={(e) => setButuhPendaftaran(e.target.checked)}
+          />
+          Butuh Pendaftaran? (approval admin sebelum bisa dikerjakan)
+        </label>
+
+        {butuhPendaftaran && (
+          <>
+            <label style={{ fontSize: '14px', color: '#374151' }}>Syarat Pendaftaran</label>
+            <textarea
+              placeholder="Contoh: Follow Instagram @rumahsimulasi, Share ke 3 grup WA, dst."
+              value={syaratPendaftaran}
+              onChange={(e) => setSyaratPendaftaran(e.target.value)}
+              style={{ padding: '8px', border: '1px solid #9ca3af', borderRadius: '4px' }}
+            />
+          </>
+        )}
+
         <button onClick={handleTambahPaket} style={{ padding: '8px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px' }}>Tambah Paket</button>
       </div>
     </div>

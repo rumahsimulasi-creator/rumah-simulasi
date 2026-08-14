@@ -48,6 +48,8 @@ export default function KelolaPaketPage() {
       deskripsi: paket.deskripsi,
       waktu_menit: paket.waktu_menit,
       harga: paket.harga,
+      butuh_pendaftaran: paket.butuh_pendaftaran || false,
+      syarat_pendaftaran: paket.syarat_pendaftaran || '',
     })
   }
 
@@ -59,6 +61,8 @@ export default function KelolaPaketPage() {
         deskripsi: editData.deskripsi,
         waktu_menit: Number(editData.waktu_menit),
         harga: Number(editData.harga),
+        butuh_pendaftaran: editData.butuh_pendaftaran,
+        syarat_pendaftaran: editData.butuh_pendaftaran ? editData.syarat_pendaftaran : null,
       })
       .eq('id', id)
     if (error) {
@@ -96,6 +100,26 @@ export default function KelolaPaketPage() {
                 <label>Harga</label>
                 <input type="number" style={inputStyle} value={editData.harga} onChange={(e) => setEditData({ ...editData, harga: e.target.value })} />
 
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                  <input
+                    type="checkbox"
+                    checked={editData.butuh_pendaftaran}
+                    onChange={(e) => setEditData({ ...editData, butuh_pendaftaran: e.target.checked })}
+                  />
+                  Butuh Pendaftaran?
+                </label>
+
+                {editData.butuh_pendaftaran && (
+                  <>
+                    <label>Syarat Pendaftaran</label>
+                    <textarea
+                      style={inputStyle}
+                      value={editData.syarat_pendaftaran}
+                      onChange={(e) => setEditData({ ...editData, syarat_pendaftaran: e.target.value })}
+                    />
+                  </>
+                )}
+
                 <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                   <button onClick={() => simpanEdit(paket.id)} style={{ padding: '6px 12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px' }}>Simpan</button>
                   <button onClick={() => setEditId(null)} style={{ padding: '6px 12px', background: '#9ca3af', color: '#fff', border: 'none', borderRadius: '4px' }}>Batal</button>
@@ -107,6 +131,7 @@ export default function KelolaPaketPage() {
                 <p>{paket.deskripsi}</p>
                 <p>Waktu: {paket.waktu_menit} menit</p>
                 <p>Harga: {paket.harga === 0 ? 'Gratis' : `Rp${Number(paket.harga).toLocaleString('id-ID')}`}</p>
+                {paket.butuh_pendaftaran && <p>Butuh Pendaftaran: Ya</p>}
 
                 <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                   <button onClick={() => mulaiEdit(paket)} style={{ padding: '6px 12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px' }}>Edit</button>

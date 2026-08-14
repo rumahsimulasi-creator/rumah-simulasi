@@ -178,8 +178,9 @@ function UjianContent() {
         if (pilihanUser) {
           poin = Number(soal[`bobot_${pilihanUser}`]) || 0
         }
+
         tkp += poin
-        benar = null // konsep benar/salah tidak berlaku untuk TKP
+        benar = null
       } else {
         // TWK / TIU
         benar = pilihanUser === soal.jawaban_benar
@@ -537,7 +538,7 @@ function UjianContent() {
                   onClick={() => toggleRagu(soal.id)}
                   className={`rounded-lg px-5 py-3 text-sm font-bold transition ${
                     soalRagu
-                      ? 'bg-amber-100 text-amber-700'
+                      ? 'bg-orange-100 text-orange-700'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
@@ -603,15 +604,17 @@ function UjianContent() {
                       className={`relative h-10 rounded-lg border text-xs font-extrabold transition ${
                         aktif
                           ? 'border-[#2563EB] bg-[#2563EB] text-white'
-                          : dijawab
-                            ? 'border-[#BFDBFE] bg-[#EFF6FF] text-[#2563EB]'
-                            : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                          : ragu
+                            ? 'border-orange-500 bg-orange-500 text-white'
+                            : dijawab
+                              ? 'border-green-500 bg-green-500 text-white'
+                              : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                       }`}
                     >
                       {index + 1}
 
                       {ragu && (
-                        <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white" />
+                        <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white" />
                       )}
                     </button>
                   )
@@ -629,12 +632,12 @@ function UjianContent() {
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded border border-[#BFDBFE] bg-[#EFF6FF]" />
+                <span className="h-3 w-3 rounded bg-green-500" />
                 Sudah dijawab
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full bg-amber-400" />
+                <span className="h-3 w-3 rounded-full bg-orange-500" />
                 Ragu-ragu
               </div>
 

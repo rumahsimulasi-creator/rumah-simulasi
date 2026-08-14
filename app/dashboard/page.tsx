@@ -24,6 +24,8 @@ const METODE_BAYAR = [
   },
 ]
 
+const NOMOR_WA_ADMIN = '62895403173470'
+
 export default function DashboardPage() {
   const [paketList, setPaketList] = useState<any[]>([])
   const [ebookList, setEbookList] = useState<any[]>([])
@@ -34,6 +36,9 @@ export default function DashboardPage() {
   const [pembayaranAktif, setPembayaranAktif] = useState<any>(null)
   const [metodeDipilih, setMetodeDipilih] = useState<any>(null)
   const [jenisPembayaran, setJenisPembayaran] = useState<'paket' | 'ebook'>('paket')
+
+  const [showPendaftaranModal, setShowPendaftaranModal] = useState(false)
+  const [paketPendaftaran, setPaketPendaftaran] = useState<any>(null)
 
   const router = useRouter()
 
@@ -214,6 +219,51 @@ export default function DashboardPage() {
     }
 
     router.push(`/ujian?paket=${paketId}`)
+  }
+
+  // =========================
+  // ALUR PENDAFTARAN (paket gratis + butuh_pendaftaran)
+  // =========================
+
+  const bukaPendaftaran = async (paket: any) => {
+    const { data: userData } = await supabase.auth.getUser()
+
+    if (!userData.user) {
+      alert('Silakan login dulu.')
+      router.push('/login')
+      return
+    }
+
+    setPaketPendaftaran(paket)
+    setShowPendaftaranModal(true)
+  }
+
+  const konfirmasiSyaratTerpenuhi = async () => {
+    if (!paketPendaftaran) return
+
+    const { data: userData } = await supabase.auth.getUser()
+    const uid = userData.user?.id
+    if (!uid) return
+
+    const { error } = await supabase.from('pembelian').insert({
+      user_id: uid,
+      paket_id: paketPendaftaran.id,
+      status: 'menunggu_konfirmasi',
+    })
+
+    if (error) {
+      alert(error.message)
+      return
+    }
+
+    setShowPendaftaranModal(false)
+    setPaketPendaftaran(null)
+    fetchData()
+  }
+
+  const linkWhatsappAdmin = (paket: any) => {
+    const pesan = `Halo admin, saya sudah melakukan syarat pendaftaran untuk paket "${paket.nama}", saya mau konfirmasi.`
+    return `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(pesan)}`
   }
 
   return (
@@ -407,7 +457,9 @@ export default function DashboardPage() {
 
                 const status =
                   gratis
-                    ? 'gratis'
+                    ? (paket.butuh_pendaftaran
+                        ? (pembelian ? pembelian.status : 'belum_daftar')
+                        : 'gratis')
                     : pembelian
                       ? pembelian.status
                       : 'belum_beli'
@@ -432,6 +484,12 @@ export default function DashboardPage() {
                         {gratis && (
                           <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-extrabold tracking-wide text-emerald-600">
                             GRATIS
+                          </span>
+                        )}
+
+                        {paket.butuh_pendaftaran && (
+                          <span className="rounded-full bg-amber-50 px-3 py-1 text-[10px] font-extrabold tracking-wide text-amber-600">
+                            PERLU DAFTAR
                           </span>
                         )}
 
@@ -502,6 +560,20 @@ export default function DashboardPage() {
 
                         </button>
 
+                      ) : status === 'belum_daftar' ? (
+
+                        <button
+                          onClick={() => bukaPendaftaran(paket)}
+                          className="flex w-full items-center justify-between rounded-xl px-1 py-2 text-sm font-extrabold text-amber-600 transition duration-300 hover:px-2"
+                        >
+                          Daftar
+
+                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-50 transition duration-300 group-hover:translate-x-1">
+                            →
+                          </span>
+
+                        </button>
+
                       ) : status === 'belum_bayar' ? (
 
                         <button
@@ -527,12 +599,25 @@ export default function DashboardPage() {
                       ) : status ===
                         'menunggu_konfirmasi' ? (
 
-                        <button
-                          disabled
-                          className="w-full cursor-not-allowed rounded-xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-400"
-                        >
-                          Menunggu Konfirmasi
-                        </button>
+                        <div className="space-y-2">
+
+                          <button
+                            disabled
+                            className="w-full cursor-not-allowed rounded-xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-400"
+                          >
+                            Menunggu Konfirmasi
+                          </button>
+
+                          <a
+                            href={linkWhatsappAdmin(paket)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-extrabold text-emerald-700 transition hover:bg-emerald-100"
+                          >
+                            Hubungi Admin
+                          </a>
+
+                        </div>
 
                       ) : (
 
@@ -1637,6 +1722,65 @@ export default function DashboardPage() {
               </>
 
             )}
+
+          </div>
+
+        </div>
+
+      )}
+
+
+      {/* ========================================================= */}
+      {/* MODAL PENDAFTARAN (paket gratis butuh_pendaftaran) */}
+      {/* ========================================================= */}
+
+      {showPendaftaranModal && paketPendaftaran && (
+
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 px-4 py-6 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowPendaftaranModal(false)
+              setPaketPendaftaran(null)
+            }
+          }}
+        >
+
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl sm:p-7">
+
+            <span className="inline-block rounded-full bg-amber-50 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-600">
+              Syarat Pendaftaran
+            </span>
+
+            <h3 className="mt-3 text-xl font-black text-slate-900">
+              {paketPendaftaran.nama}
+            </h3>
+
+            <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+              <p className="text-sm font-extrabold text-amber-800">
+                Syarat yang harus dipenuhi:
+              </p>
+              <p className="mt-2 whitespace-pre-line text-sm font-medium leading-6 text-amber-700">
+                {paketPendaftaran.syarat_pendaftaran || 'Tidak ada syarat khusus.'}
+              </p>
+            </div>
+
+            <button
+              onClick={konfirmasiSyaratTerpenuhi}
+              className="mt-5 w-full rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-emerald-700"
+            >
+              Saya Sudah Memenuhi Syarat
+            </button>
+
+            <button
+              onClick={() => {
+                setShowPendaftaranModal(false)
+                setPaketPendaftaran(null)
+              }}
+              className="mt-2 w-full rounded-xl px-4 py-3 text-sm font-bold text-slate-500 transition hover:bg-slate-50"
+            >
+              Batal
+            </button>
 
           </div>
 

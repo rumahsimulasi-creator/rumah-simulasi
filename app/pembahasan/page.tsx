@@ -73,10 +73,30 @@ function PembahasanContent() {
 
   const current = jawabanList[currentIndex]
   const soal = current.soal
+  const isTKP = String(soal.kategori || '').toUpperCase() === 'TKP'
   const benar = current.benar
 
-  const jumlahBenar = jawabanList.filter((item) => item.benar).length
-  const jumlahSalah = jawabanList.length - jumlahBenar
+  const poinTKP = current.jawaban_dipilih
+    ? Number(soal[`bobot_${current.jawaban_dipilih}`]) || 0
+    : 0
+
+  // Statistik: TWK/TIU dihitung benar/salah, TKP dihitung total poin
+  const soalTwkTiu = jawabanList.filter(
+    (item) => String(item.soal.kategori || '').toUpperCase() !== 'TKP'
+  )
+  const soalTkp = jawabanList.filter(
+    (item) => String(item.soal.kategori || '').toUpperCase() === 'TKP'
+  )
+
+  const jumlahBenar = soalTwkTiu.filter((item) => item.benar).length
+  const jumlahSalah = soalTwkTiu.length - jumlahBenar
+
+  const totalPoinTKP = soalTkp.reduce((sum, item) => {
+    const p = item.jawaban_dipilih
+      ? Number(item.soal[`bobot_${item.jawaban_dipilih}`]) || 0
+      : 0
+    return sum + p
+  }, 0)
 
   const pilihan = ['a', 'b', 'c', 'd', 'e']
 
@@ -96,15 +116,20 @@ function PembahasanContent() {
             </h1>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="hidden rounded-lg bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-sm sm:block">
-              Benar:{' '}
+              Benar (TWK/TIU):{' '}
               <span className="text-emerald-600">{jumlahBenar}</span>
             </div>
 
             <div className="hidden rounded-lg bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-sm sm:block">
-              Salah:{' '}
+              Salah (TWK/TIU):{' '}
               <span className="text-red-500">{jumlahSalah}</span>
+            </div>
+
+            <div className="hidden rounded-lg bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-sm sm:block">
+              Total Poin TKP:{' '}
+              <span className="text-[#2563EB]">{totalPoinTKP}</span>
             </div>
           </div>
         </div>
@@ -131,15 +156,21 @@ function PembahasanContent() {
                   )}
                 </div>
 
-                <span
-                  className={`rounded-full px-3 py-1 text-[11px] font-extrabold ${
-                    benar
-                      ? 'bg-emerald-50 text-emerald-600'
-                      : 'bg-red-50 text-red-500'
-                  }`}
-                >
-                  {benar ? 'BENAR' : 'SALAH'}
-                </span>
+                {isTKP ? (
+                  <span className="rounded-full bg-[#EFF6FF] px-3 py-1 text-[11px] font-extrabold text-[#2563EB]">
+                    +{poinTKP} POIN
+                  </span>
+                ) : (
+                  <span
+                    className={`rounded-full px-3 py-1 text-[11px] font-extrabold ${
+                      benar
+                        ? 'bg-emerald-50 text-emerald-600'
+                        : 'bg-red-50 text-red-500'
+                    }`}
+                  >
+                    {benar ? 'BENAR' : 'SALAH'}
+                  </span>
+                )}
               </div>
 
               {/* PERTANYAAN */}
@@ -171,12 +202,19 @@ function PembahasanContent() {
                     current.jawaban_dipilih === huruf
 
                   const adalahJawabanBenar =
-                    soal.jawaban_benar === huruf
+                    !isTKP && soal.jawaban_benar === huruf
+
+                  const bobotHuruf = isTKP ? soal[`bobot_${huruf}`] : null
 
                   let optionClass =
                     'border-slate-200 bg-slate-50 text-slate-700'
 
-                  if (adalahJawabanBenar) {
+                  if (isTKP) {
+                    if (adalahJawabanUser) {
+                      optionClass =
+                        'border-[#93C5FD] bg-[#EFF6FF] text-[#1D4ED8]'
+                    }
+                  } else if (adalahJawabanBenar) {
                     optionClass =
                       'border-emerald-300 bg-emerald-50 text-emerald-800'
                   } else if (adalahJawabanUser) {
@@ -193,7 +231,11 @@ function PembahasanContent() {
 
                         <span
                           className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-extrabold ${
-                            adalahJawabanBenar
+                            isTKP
+                              ? adalahJawabanUser
+                                ? 'bg-[#2563EB] text-white'
+                                : 'bg-white text-slate-600'
+                              : adalahJawabanBenar
                               ? 'bg-emerald-500 text-white'
                               : adalahJawabanUser
                               ? 'bg-red-500 text-white'
@@ -220,16 +262,24 @@ function PembahasanContent() {
                         </div>
 
                         <div className="shrink-0 text-right">
-                          {adalahJawabanBenar && (
-                            <span className="text-[10px] font-extrabold text-emerald-600">
-                              JAWABAN BENAR
+                          {isTKP ? (
+                            <span className="text-[10px] font-extrabold text-slate-400">
+                              BOBOT {bobotHuruf ?? 0}
                             </span>
-                          )}
+                          ) : (
+                            <>
+                              {adalahJawabanBenar && (
+                                <span className="text-[10px] font-extrabold text-emerald-600">
+                                  JAWABAN BENAR
+                                </span>
+                              )}
 
-                          {adalahJawabanUser && !adalahJawabanBenar && (
-                            <span className="text-[10px] font-extrabold text-red-500">
-                              JAWABAN KAMU
-                            </span>
+                              {adalahJawabanUser && !adalahJawabanBenar && (
+                                <span className="text-[10px] font-extrabold text-red-500">
+                                  JAWABAN KAMU
+                                </span>
+                              )}
+                            </>
                           )}
                         </div>
 
@@ -249,7 +299,11 @@ function PembahasanContent() {
 
                   <p
                     className={`mt-1 text-lg font-extrabold ${
-                      benar ? 'text-emerald-600' : 'text-red-500'
+                      isTKP
+                        ? 'text-[#2563EB]'
+                        : benar
+                        ? 'text-emerald-600'
+                        : 'text-red-500'
                     }`}
                   >
                     {current.jawaban_dipilih
@@ -258,17 +312,29 @@ function PembahasanContent() {
                   </p>
                 </div>
 
-                <div className="rounded-xl bg-[#EAF4FE] px-4 py-3">
-                  <p className="text-[10px] font-extrabold uppercase tracking-wide text-[#2563EB]">
-                    Jawaban Benar
-                  </p>
+                {isTKP ? (
+                  <div className="rounded-xl bg-[#EAF4FE] px-4 py-3">
+                    <p className="text-[10px] font-extrabold uppercase tracking-wide text-[#2563EB]">
+                      Poin Diperoleh
+                    </p>
 
-                  <p className="mt-1 text-lg font-extrabold text-[#2563EB]">
-                    {soal.jawaban_benar
-                      ? soal.jawaban_benar.toUpperCase()
-                      : '-'}
-                  </p>
-                </div>
+                    <p className="mt-1 text-lg font-extrabold text-[#2563EB]">
+                      {poinTKP}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-xl bg-[#EAF4FE] px-4 py-3">
+                    <p className="text-[10px] font-extrabold uppercase tracking-wide text-[#2563EB]">
+                      Jawaban Benar
+                    </p>
+
+                    <p className="mt-1 text-lg font-extrabold text-[#2563EB]">
+                      {soal.jawaban_benar
+                        ? soal.jawaban_benar.toUpperCase()
+                        : '-'}
+                    </p>
+                  </div>
+                )}
 
               </div>
             </article>
@@ -346,6 +412,16 @@ function PembahasanContent() {
                   </p>
                 </div>
               </div>
+
+              <div className="mt-3 rounded-xl bg-[#EFF6FF] p-3 text-center">
+                <p className="text-[10px] font-bold text-[#2563EB]">
+                  TOTAL POIN TKP
+                </p>
+
+                <p className="mt-1 text-xl font-extrabold text-[#1D4ED8]">
+                  {totalPoinTKP}
+                </p>
+              </div>
             </div>
 
             {/* DAFTAR SOAL */}
@@ -356,35 +432,47 @@ function PembahasanContent() {
               </p>
 
               <div className="mt-4 grid max-h-[430px] grid-cols-5 gap-2 overflow-y-auto pr-1">
-                {jawabanList.map((item, index) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setCurrentIndex(index)}
-                    className={`relative flex h-10 items-center justify-center rounded-lg text-xs font-extrabold transition ${
-                      currentIndex === index
-                        ? 'ring-2 ring-[#2563EB] ring-offset-2'
-                        : ''
-                    } ${
-                      item.benar
-                        ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                        : 'bg-red-500 text-white hover:bg-red-600'
-                    }`}
-                  >
-                    {index + 1}
-                  </button>
-                ))}
+                {jawabanList.map((item, index) => {
+                  const itemIsTKP =
+                    String(item.soal.kategori || '').toUpperCase() === 'TKP'
+
+                  const warna = itemIsTKP
+                    ? 'bg-[#2563EB] text-white hover:bg-[#1D4ED8]'
+                    : item.benar
+                    ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                    : 'bg-red-500 text-white hover:bg-red-600'
+
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setCurrentIndex(index)}
+                      className={`relative flex h-10 items-center justify-center rounded-lg text-xs font-extrabold transition ${
+                        currentIndex === index
+                          ? 'ring-2 ring-[#2563EB] ring-offset-2'
+                          : ''
+                      } ${warna}`}
+                    >
+                      {index + 1}
+                    </button>
+                  )
+                })}
               </div>
 
               <div className="mt-4 space-y-2 border-t border-slate-100 pt-4">
 
                 <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
                   <span className="h-3 w-3 rounded bg-emerald-500" />
-                  Jawaban benar
+                  Jawaban benar (TWK/TIU)
                 </div>
 
                 <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
                   <span className="h-3 w-3 rounded bg-red-500" />
-                  Jawaban salah
+                  Jawaban salah (TWK/TIU)
+                </div>
+
+                <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
+                  <span className="h-3 w-3 rounded bg-[#2563EB]" />
+                  Soal TKP (berbobot)
                 </div>
 
               </div>
