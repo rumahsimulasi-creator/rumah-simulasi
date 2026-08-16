@@ -8,7 +8,7 @@ const METODE_BAYAR = [
   {
     id: 'bni',
     nama: 'BNI',
-    nomor: '1234567890 a.n. Rumah Simulasi',
+    nomor: '2008792833 A.N M.IQBAL',
   },
   {
     id: 'qris',
@@ -16,14 +16,19 @@ const METODE_BAYAR = [
     nomor: 'Scan QRIS untuk melakukan pembayaran',
   },
   {
-    id: 'gopay',
-    nama: 'GoPay',
-    nomor: '081234567890 a.n. Rumah Simulasi',
+    id: 'seabank',
+    nama: 'SeaBank',
+    nomor: '901658813886 a.n. M. IQBAL',
   },
   {
-    id: 'shopeepay',
-    nama: 'ShopeePay',
-    nomor: '081234567890 a.n. Rumah Simulasi',
+    id: 'gopay',
+    nama: 'GoPay',
+    nomor: '085179821611 a.n. M.IQBAL',
+  },
+  {
+    id: 'dana',
+    nama: 'Dana',
+    nomor: '085179821611 a.n. M.Iqbal',
   },
 ]
 
@@ -33,8 +38,13 @@ export default function PaketPage() {
   const [paketList, setPaketList] = useState<any[]>([])
   const [pembelianList, setPembelianList] = useState<any[]>([])
 
+  const [bundlingList, setBundlingList] = useState<any[]>([])
+  const [pembelianBundlingList, setPembelianBundlingList] = useState<any[]>([])
+
   const [showModal, setShowModal] = useState(false)
+  const [tipeAktif, setTipeAktif] = useState<'paket' | 'bundling'>('paket')
   const [paketTerpilih, setPaketTerpilih] = useState<any>(null)
+  const [bundlingTerpilih, setBundlingTerpilih] = useState<any>(null)
   const [metodeTerpilih, setMetodeTerpilih] = useState<string | null>(null)
   const [memproses, setMemproses] = useState(false)
 
@@ -43,6 +53,10 @@ export default function PaketPage() {
 
   const router = useRouter()
 
+  // =========================
+  // FETCH DATA
+  // =========================
+
   const fetchData = async () => {
     const { data: paketData } = await supabase
       .from('paket')
@@ -50,6 +64,28 @@ export default function PaketPage() {
 
     if (paketData) {
       setPaketList(paketData)
+    }
+
+    const { data: bundlingData } = await supabase
+      .from('paket_bundling')
+      .select('*')
+
+    if (bundlingData) {
+      const bundlingDenganIsi = await Promise.all(
+        bundlingData.map(async (b) => {
+          const { data: isiData } = await supabase
+            .from('bundling_isi')
+            .select('paket_id, paket(nama)')
+            .eq('bundling_id', b.id)
+
+          return {
+            ...b,
+            isi: isiData || [],
+          }
+        })
+      )
+
+      setBundlingList(bundlingDenganIsi)
     }
 
     const { data: userData } = await supabase.auth.getUser()
@@ -64,8 +100,18 @@ export default function PaketPage() {
       if (pembelianData) {
         setPembelianList(pembelianData)
       }
+
+      const { data: pembelianBundlingData } = await supabase
+        .from('pembelian_bundling')
+        .select('*')
+        .eq('user_id', userId)
+
+      if (pembelianBundlingData) {
+        setPembelianBundlingList(pembelianBundlingData)
+      }
     } else {
       setPembelianList([])
+      setPembelianBundlingList([])
     }
   }
 
@@ -73,25 +119,57 @@ export default function PaketPage() {
     fetchData()
   }, [])
 
+  // =========================
+  // GET PEMBELIAN
+  // =========================
+
   const getPembelian = (paketId: string) => {
     return pembelianList.find(
       (p) => p.paket_id === paketId
     )
   }
 
+  const getPembelianBundling = (bundlingId: string) => {
+    return pembelianBundlingList.find(
+      (p) => p.bundling_id === bundlingId
+    )
+  }
+
+  // =========================
+  // STATUS PAKET
+  // =========================
+
   const getStatus = (paket: any) => {
     const gratis = Number(paket.harga) === 0
     const pembelian = getPembelian(paket.id)
 
     if (gratis && paket.butuh_pendaftaran) {
-      return pembelian ? pembelian.status : 'belum_daftar'
+      return pembelian
+        ? pembelian.status
+        : 'belum_daftar'
     }
 
-    return gratis ? 'gratis' : pembelian ? pembelian.status : 'belum_beli'
+    return gratis
+      ? 'gratis'
+      : pembelian
+        ? pembelian.status
+        : 'belum_beli'
   }
 
   // =========================
-  // BELI PAKET
+  // STATUS BUNDLING
+  // =========================
+
+  const getStatusBundling = (bundling: any) => {
+    const pembelian = getPembelianBundling(bundling.id)
+
+    return pembelian
+      ? pembelian.status
+      : 'belum_beli'
+  }
+
+  // =========================
+  // BUKA PEMBAYARAN PAKET
   // =========================
 
   const bukaPembayaran = async (paket: any) => {
@@ -104,31 +182,30 @@ export default function PaketPage() {
       return
     }
 
-    const pembelianLama = getPembelian(paket.id)
+    setTipeAktif('paket')
+    setPaketTerpilih(paket)
+    setBundlingTerpilih(null)
+    setMetodeTerpilih(null)
+    setShowModal(true)
+  }
 
-    // Kalau belum pernah membeli, buat transaksi
-    if (!pembelianLama) {
-      setMemproses(true)
+  // =========================
+  // BUKA PEMBAYARAN BUNDLING
+  // =========================
 
-      const { error } = await supabase
-        .from('pembelian')
-        .insert({
-          user_id: userId,
-          paket_id: paket.id,
-          status: 'belum_bayar',
-        })
+  const bukaPembayaranBundling = async (bundling: any) => {
+    const { data: userData } = await supabase.auth.getUser()
+    const userId = userData.user?.id
 
-      if (error) {
-        alert(error.message)
-        setMemproses(false)
-        return
-      }
-
-      await fetchData()
-      setMemproses(false)
+    if (!userId) {
+      alert('Silakan login terlebih dahulu.')
+      router.push('/login')
+      return
     }
 
-    setPaketTerpilih(paket)
+    setTipeAktif('bundling')
+    setBundlingTerpilih(bundling)
+    setPaketTerpilih(null)
     setMetodeTerpilih(null)
     setShowModal(true)
   }
@@ -146,32 +223,116 @@ export default function PaketPage() {
   // =========================
 
   const konfirmasiPembayaran = async () => {
-    if (!paketTerpilih) return
-
-    const pembelian = getPembelian(paketTerpilih.id)
-
-    if (!pembelian) {
-      alert('Data pembelian tidak ditemukan.')
+    if (!metodeTerpilih) {
+      alert('Silakan pilih metode pembayaran terlebih dahulu.')
       return
     }
 
     setMemproses(true)
 
-    const { error } = await supabase
-      .from('pembelian')
-      .update({
-        status: 'menunggu_konfirmasi',
-      })
-      .eq('id', pembelian.id)
+    const { data: userData } = await supabase.auth.getUser()
+    const userId = userData.user?.id
 
-    if (error) {
-      alert(error.message)
+    if (!userId) {
       setMemproses(false)
+      alert('Silakan login terlebih dahulu.')
+      router.push('/login')
       return
+    }
+
+    // =========================
+    // PAKET BIASA
+    // =========================
+
+    if (tipeAktif === 'paket') {
+      if (!paketTerpilih) {
+        setMemproses(false)
+        return
+      }
+
+      const pembelian = getPembelian(paketTerpilih.id)
+
+      // Jika belum ada transaksi, baru buat setelah
+      // user menekan konfirmasi pembayaran
+      if (!pembelian) {
+        const { error } = await supabase
+          .from('pembelian')
+          .insert({
+            user_id: userId,
+            paket_id: paketTerpilih.id,
+            status: 'menunggu_konfirmasi',
+          })
+
+        if (error) {
+          alert(error.message)
+          setMemproses(false)
+          return
+        }
+      } else {
+        const { error } = await supabase
+          .from('pembelian')
+          .update({
+            status: 'menunggu_konfirmasi',
+          })
+          .eq('id', pembelian.id)
+
+        if (error) {
+          alert(error.message)
+          setMemproses(false)
+          return
+        }
+      }
+    }
+
+    // =========================
+    // BUNDLING
+    // =========================
+
+    if (tipeAktif === 'bundling') {
+      if (!bundlingTerpilih) {
+        setMemproses(false)
+        return
+      }
+
+      const pembelian = getPembelianBundling(
+        bundlingTerpilih.id
+      )
+
+      // Jika belum ada transaksi, baru buat setelah
+      // user menekan konfirmasi pembayaran
+      if (!pembelian) {
+        const { error } = await supabase
+          .from('pembelian_bundling')
+          .insert({
+            user_id: userId,
+            bundling_id: bundlingTerpilih.id,
+            status: 'menunggu_konfirmasi',
+          })
+
+        if (error) {
+          alert(error.message)
+          setMemproses(false)
+          return
+        }
+      } else {
+        const { error } = await supabase
+          .from('pembelian_bundling')
+          .update({
+            status: 'menunggu_konfirmasi',
+          })
+          .eq('id', pembelian.id)
+
+        if (error) {
+          alert(error.message)
+          setMemproses(false)
+          return
+        }
+      }
     }
 
     setShowModal(false)
     setPaketTerpilih(null)
+    setBundlingTerpilih(null)
     setMetodeTerpilih(null)
 
     await fetchData()
@@ -180,53 +341,33 @@ export default function PaketPage() {
   }
 
   // =========================
-  // TUTUP POPUP PEMBAYARAN
+  // TUTUP POPUP
   // =========================
 
-  const tutupModal = async () => {
-    if (!paketTerpilih) {
-      setShowModal(false)
-      return
-    }
-
-    const pembelian = getPembelian(paketTerpilih.id)
-
-    if (
-      pembelian &&
-      pembelian.status === 'belum_bayar' &&
-      metodeTerpilih
-    ) {
-      const { error } = await supabase
-        .from('pembelian')
-        .update({
-          status: 'menunggu_konfirmasi',
-        })
-        .eq('id', pembelian.id)
-
-      if (error) {
-        alert(error.message)
-        return
-      }
-
-      await fetchData()
-    }
+  const tutupModal = () => {
+    // Menutup popup TIDAK mengubah status pembayaran.
+    // Transaksi hanya dibuat/diubah ketika tombol
+    // "Konfirmasi Pembayaran" ditekan.
 
     setShowModal(false)
     setPaketTerpilih(null)
+    setBundlingTerpilih(null)
     setMetodeTerpilih(null)
   }
 
   // =========================
-  // ALUR PENDAFTARAN (paket gratis + butuh_pendaftaran)
+  // PENDAFTARAN PAKET GRATIS
   // =========================
 
   const bukaPendaftaran = async (paket: any) => {
     const { data: userData } = await supabase.auth.getUser()
+
     if (!userData.user) {
       alert('Silakan login terlebih dahulu.')
       router.push('/login')
       return
     }
+
     setPaketPendaftaran(paket)
     setShowPendaftaranModal(true)
   }
@@ -236,15 +377,18 @@ export default function PaketPage() {
 
     const { data: userData } = await supabase.auth.getUser()
     const userId = userData.user?.id
+
     if (!userId) return
 
     setMemproses(true)
 
-    const { error } = await supabase.from('pembelian').insert({
-      user_id: userId,
-      paket_id: paketPendaftaran.id,
-      status: 'menunggu_konfirmasi',
-    })
+    const { error } = await supabase
+      .from('pembelian')
+      .insert({
+        user_id: userId,
+        paket_id: paketPendaftaran.id,
+        status: 'menunggu_konfirmasi',
+      })
 
     if (error) {
       alert(error.message)
@@ -254,13 +398,23 @@ export default function PaketPage() {
 
     setShowPendaftaranModal(false)
     setPaketPendaftaran(null)
+
     await fetchData()
+
     setMemproses(false)
   }
 
+  // =========================
+  // WHATSAPP ADMIN
+  // =========================
+
   const linkWhatsappAdmin = (paket: any) => {
-    const pesan = `Halo admin, saya sudah melakukan syarat pendaftaran untuk paket "${paket.nama}", saya mau konfirmasi.`
-    return `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(pesan)}`
+    const pesan =
+      `Halo admin, saya sudah melakukan syarat pendaftaran untuk paket "${paket.nama}", saya mau konfirmasi.`
+
+    return `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(
+      pesan
+    )}`
   }
 
   // =========================
@@ -271,7 +425,9 @@ export default function PaketPage() {
     const { data: userData } = await supabase.auth.getUser()
 
     if (!userData.user) {
-      alert('Anda harus login terlebih dahulu untuk mengerjakan soal.')
+      alert(
+        'Anda harus login terlebih dahulu untuk mengerjakan soal.'
+      )
       router.push('/login')
       return
     }
@@ -279,11 +435,24 @@ export default function PaketPage() {
     router.push(`/ujian?paket=${paketId}`)
   }
 
+  // =========================
+  // GET METODE AKTIF
+  // =========================
+
   const getMetode = () => {
     return METODE_BAYAR.find(
       (m) => m.id === metodeTerpilih
     )
   }
+
+  const itemModalAktif =
+    tipeAktif === 'paket'
+      ? paketTerpilih
+      : bundlingTerpilih
+
+  // =========================
+  // RENDER
+  // =========================
 
   return (
     <>
@@ -301,13 +470,14 @@ export default function PaketPage() {
             </h1>
 
             <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500">
-              Pilih paket simulasi yang sesuai dengan kebutuhanmu dan
-              mulai latihan untuk mempersiapkan ujian.
+              Pilih paket simulasi yang sesuai dengan kebutuhanmu
+              dan mulai latihan untuk mempersiapkan ujian.
             </p>
           </div>
 
-          {/* LIST PAKET */}
-          {paketList.length === 0 ? (
+          {/* LIST PAKET + BUNDLING */}
+          {paketList.length === 0 &&
+          bundlingList.length === 0 ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
               <h2 className="text-lg font-extrabold text-slate-900">
                 Belum Ada Paket
@@ -320,8 +490,111 @@ export default function PaketPage() {
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
 
+              {/* ========================= */}
+              {/* KARTU BUNDLING */}
+              {/* ========================= */}
+
+              {bundlingList.map((bundling) => {
+                const status =
+                  getStatusBundling(bundling)
+
+                return (
+                  <div
+                    key={`bundling-${bundling.id}`}
+                    className="flex h-full flex-col rounded-2xl border-2 border-[#2563EB] bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                  >
+                    <div className="flex flex-wrap gap-2">
+                      <span className="rounded-full bg-[#2563EB] px-3 py-1 text-[11px] font-extrabold text-white">
+                        BUNDLING
+                      </span>
+                    </div>
+
+                    <h2 className="mt-5 text-lg font-extrabold leading-6 text-slate-900">
+                      {bundling.nama}
+                    </h2>
+
+                    <p className="mt-2 line-clamp-2 text-sm font-medium leading-6 text-slate-500">
+                      {bundling.deskripsi}
+                    </p>
+
+                    <div className="mt-4">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                        Paket di dalamnya:
+                      </p>
+
+                      <ul className="mt-1 space-y-0.5">
+                        {bundling.isi.map(
+                          (item: any) => (
+                            <li
+                              key={item.paket_id}
+                              className="text-sm text-slate-600"
+                            >
+                              • {item.paket?.nama}
+                            </li>
+                          )
+                        )}
+                      </ul>
+                    </div>
+
+                    <div className="mt-5">
+                      <p className="text-xs font-bold text-slate-400">
+                        Harga
+                      </p>
+
+                      <p className="mt-1 text-xl font-black text-[#2563EB]">
+                        Rp
+                        {Number(
+                          bundling.harga
+                        ).toLocaleString('id-ID')}
+                      </p>
+                    </div>
+
+                    <div className="mt-5 border-t border-slate-100 pt-5" />
+
+                    {status === 'lunas' ? (
+                      <button
+                        disabled
+                        className="w-full rounded-xl bg-emerald-50 px-5 py-3.5 text-sm font-extrabold text-emerald-600"
+                      >
+                        Sudah Dimiliki
+                      </button>
+                    ) : status ===
+                      'menunggu_konfirmasi' ? (
+                      <button
+                        disabled
+                        className="w-full cursor-not-allowed rounded-xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-400"
+                      >
+                        Menunggu Konfirmasi
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() =>
+                          bukaPembayaranBundling(
+                            bundling
+                          )
+                        }
+                        disabled={memproses}
+                        className="flex w-full items-center justify-between rounded-xl bg-[#2563EB] px-5 py-3.5 text-sm font-extrabold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Beli Bundling
+
+                        <span className="text-lg">
+                          →
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+
+              {/* ========================= */}
+              {/* KARTU PAKET BIASA */}
+              {/* ========================= */}
+
               {paketList.map((paket) => {
-                const gratis = Number(paket.harga) === 0
+                const gratis =
+                  Number(paket.harga) === 0
+
                 const status = getStatus(paket)
 
                 return (
@@ -329,8 +602,6 @@ export default function PaketPage() {
                     key={paket.id}
                     className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                   >
-
-                    {/* BADGE */}
                     <div className="flex flex-wrap gap-2">
                       <span className="rounded-full bg-[#EFF6FF] px-3 py-1 text-[11px] font-extrabold text-[#2563EB]">
                         TRY OUT
@@ -349,17 +620,14 @@ export default function PaketPage() {
                       )}
                     </div>
 
-                    {/* NAMA */}
                     <h2 className="mt-5 text-lg font-extrabold leading-6 text-slate-900">
                       {paket.nama}
                     </h2>
 
-                    {/* DESKRIPSI */}
                     <p className="mt-2 line-clamp-3 text-sm font-medium leading-6 text-slate-500">
                       {paket.deskripsi}
                     </p>
 
-                    {/* DURASI */}
                     <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-slate-600">
                       <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-xs">
                         ⏱
@@ -368,7 +636,6 @@ export default function PaketPage() {
                       {paket.waktu_menit} menit
                     </div>
 
-                    {/* HARGA */}
                     <div className="mt-5">
                       <p className="text-xs font-bold text-slate-400">
                         Harga
@@ -377,16 +644,24 @@ export default function PaketPage() {
                       <p className="mt-1 text-xl font-black text-[#2563EB]">
                         {gratis
                           ? 'Gratis'
-                          : `Rp${Number(paket.harga).toLocaleString('id-ID')}`}
+                          : `Rp${Number(
+                              paket.harga
+                            ).toLocaleString(
+                              'id-ID'
+                            )}`}
                       </p>
                     </div>
 
                     <div className="mt-5 border-t border-slate-100 pt-5" />
 
-                    {/* GRATIS / LUNAS */}
-                    {status === 'gratis' || status === 'lunas' ? (
+                    {status === 'gratis' ||
+                    status === 'lunas' ? (
                       <button
-                        onClick={() => handleMulaiUjian(paket.id)}
+                        onClick={() =>
+                          handleMulaiUjian(
+                            paket.id
+                          )
+                        }
                         className="flex w-full items-center justify-between rounded-xl bg-[#2563EB] px-5 py-3.5 text-sm font-extrabold text-white transition hover:bg-[#1D4ED8]"
                       >
                         Mulai Ujian
@@ -395,9 +670,8 @@ export default function PaketPage() {
                           →
                         </span>
                       </button>
-                    ) : status === 'menunggu_konfirmasi' ? (
-
-                      /* MENUNGGU KONFIRMASI */
+                    ) : status ===
+                      'menunggu_konfirmasi' ? (
                       <div className="space-y-2">
                         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center">
                           <p className="text-sm font-extrabold text-amber-700">
@@ -410,7 +684,9 @@ export default function PaketPage() {
                         </div>
 
                         <a
-                          href={linkWhatsappAdmin(paket)}
+                          href={linkWhatsappAdmin(
+                            paket
+                          )}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-extrabold text-emerald-700 transition hover:bg-emerald-100"
@@ -418,12 +694,12 @@ export default function PaketPage() {
                           Hubungi Admin
                         </a>
                       </div>
-
-                    ) : status === 'belum_daftar' ? (
-
-                      /* DAFTAR (PAKET GRATIS BUTUH PENDAFTARAN) */
+                    ) : status ===
+                      'belum_daftar' ? (
                       <button
-                        onClick={() => bukaPendaftaran(paket)}
+                        onClick={() =>
+                          bukaPendaftaran(paket)
+                        }
                         className="flex w-full items-center justify-between rounded-xl bg-amber-500 px-5 py-3.5 text-sm font-extrabold text-white transition hover:bg-amber-600"
                       >
                         Daftar
@@ -432,27 +708,26 @@ export default function PaketPage() {
                           →
                         </span>
                       </button>
-
                     ) : (
-
-                      /* BELI */
                       <button
-                        onClick={() => bukaPembayaran(paket)}
+                        onClick={() =>
+                          bukaPembayaran(paket)
+                        }
                         disabled={memproses}
                         className="flex w-full items-center justify-between rounded-xl bg-[#2563EB] px-5 py-3.5 text-sm font-extrabold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {memproses ? 'Memproses...' : 'Beli Paket'}
+                        {memproses
+                          ? 'Memproses...'
+                          : 'Beli Paket'}
 
                         <span className="text-lg">
                           →
                         </span>
                       </button>
                     )}
-
                   </div>
                 )
               })}
-
             </div>
           )}
         </div>
@@ -462,23 +737,23 @@ export default function PaketPage() {
       {/* POPUP PEMBAYARAN */}
       {/* ================================================= */}
 
-      {showModal && paketTerpilih && (
+      {showModal && itemModalAktif && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 px-4 py-6 backdrop-blur-sm">
-
           <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white shadow-2xl">
 
-            {/* HEADER POPUP */}
+            {/* HEADER */}
             <div className="border-b border-slate-100 px-6 py-5 sm:px-7">
-
               <div className="flex items-start justify-between gap-4">
 
                 <div>
                   <p className="text-xs font-extrabold uppercase tracking-wider text-[#2563EB]">
-                    Pembayaran Paket
+                    {tipeAktif === 'bundling'
+                      ? 'Pembayaran Bundling'
+                      : 'Pembayaran Paket'}
                   </p>
 
                   <h2 className="mt-1 text-xl font-extrabold text-slate-900">
-                    {paketTerpilih.nama}
+                    {itemModalAktif.nama}
                   </h2>
                 </div>
 
@@ -488,35 +763,29 @@ export default function PaketPage() {
                 >
                   ×
                 </button>
-
               </div>
-
             </div>
 
             <div className="p-6 sm:p-7">
 
               {/* TOTAL */}
               <div className="rounded-2xl bg-[#EFF6FF] p-4">
-
                 <p className="text-xs font-bold text-[#2563EB]">
                   Total Pembayaran
                 </p>
 
                 <p className="mt-1 text-2xl font-black text-slate-900">
                   Rp
-                  {Number(paketTerpilih.harga).toLocaleString('id-ID')}
+                  {Number(
+                    itemModalAktif.harga
+                  ).toLocaleString('id-ID')}
                 </p>
-
               </div>
 
-              {/* ================================================= */}
               {/* PILIH METODE */}
-              {/* ================================================= */}
-
               {!metodeTerpilih && (
                 <>
                   <div className="mt-6">
-
                     <h3 className="text-sm font-extrabold text-slate-900">
                       Pilih Metode Pembayaran
                     </h3>
@@ -524,62 +793,64 @@ export default function PaketPage() {
                     <p className="mt-1 text-xs font-medium text-slate-500">
                       Pilih salah satu metode pembayaran berikut.
                     </p>
-
                   </div>
 
                   <div className="mt-4 space-y-3">
+                    {METODE_BAYAR.map(
+                      (metode) => (
+                        <button
+                          key={metode.id}
+                          onClick={() =>
+                            pilihMetode(
+                              metode.id
+                            )
+                          }
+                          className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-[#93C5FD] hover:bg-[#F8FBFF]"
+                        >
+                          <div className="flex items-center gap-3">
 
-                    {METODE_BAYAR.map((metode) => (
-                      <button
-                        key={metode.id}
-                        onClick={() => pilihMetode(metode.id)}
-                        className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-[#93C5FD] hover:bg-[#F8FBFF]"
-                      >
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EFF6FF] text-xs font-black text-[#2563EB]">
+                              {metode.id ===
+                              'qris'
+                                ? 'QR'
+                                : metode.nama.slice(
+                                    0,
+                                    2
+                                  )}
+                            </div>
 
-                        <div className="flex items-center gap-3">
+                            <div>
+                              <p className="text-sm font-extrabold text-slate-800">
+                                {metode.nama}
+                              </p>
 
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EFF6FF] text-xs font-black text-[#2563EB]">
-                            {metode.id === 'qris'
-                              ? 'QR'
-                              : metode.nama.slice(0, 2)}
+                              <p className="mt-0.5 text-xs font-medium text-slate-500">
+                                {metode.id ===
+                                'qris'
+                                  ? 'Pembayaran melalui QRIS'
+                                  : 'Transfer / pembayaran langsung'}
+                              </p>
+                            </div>
                           </div>
 
-                          <div>
-
-                            <p className="text-sm font-extrabold text-slate-800">
-                              {metode.nama}
-                            </p>
-
-                            <p className="mt-0.5 text-xs font-medium text-slate-500">
-                              {metode.id === 'qris'
-                                ? 'Pembayaran melalui QRIS'
-                                : 'Transfer / pembayaran langsung'}
-                            </p>
-
-                          </div>
-
-                        </div>
-
-                        <span className="text-lg font-bold text-slate-400">
-                          →
-                        </span>
-
-                      </button>
-                    ))}
-
+                          <span className="text-lg font-bold text-slate-400">
+                            →
+                          </span>
+                        </button>
+                      )
+                    )}
                   </div>
                 </>
               )}
 
-              {/* ================================================= */}
               {/* DETAIL PEMBAYARAN */}
-              {/* ================================================= */}
-
               {metodeTerpilih && (
                 <div className="mt-6">
 
                   <button
-                    onClick={() => setMetodeTerpilih(null)}
+                    onClick={() =>
+                      setMetodeTerpilih(null)
+                    }
                     className="mb-4 text-xs font-bold text-[#2563EB] hover:underline"
                   >
                     ← Ganti metode pembayaran
@@ -591,13 +862,16 @@ export default function PaketPage() {
                     <div className="flex items-center gap-3">
 
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#DBEAFE] text-xs font-black text-[#2563EB]">
-                        {getMetode()?.id === 'qris'
+                        {getMetode()?.id ===
+                        'qris'
                           ? 'QR'
-                          : getMetode()?.nama.slice(0, 2)}
+                          : getMetode()?.nama.slice(
+                              0,
+                              2
+                            )}
                       </div>
 
                       <div>
-
                         <p className="text-xs font-bold text-slate-400">
                           Bayar menggunakan
                         </p>
@@ -605,51 +879,26 @@ export default function PaketPage() {
                         <p className="text-base font-extrabold text-slate-900">
                           {getMetode()?.nama}
                         </p>
-
                       </div>
-
                     </div>
 
                     {/* QRIS */}
-                    {metodeTerpilih === 'qris' ? (
-
+                    {metodeTerpilih ===
+                    'qris' ? (
                       <div className="mt-5 text-center">
 
-                        {paketTerpilih.qris_gambar ? (
-                          <img
-                            src={paketTerpilih.qris_gambar}
-                            alt="QRIS Pembayaran"
-                            className="mx-auto h-64 w-64 rounded-xl border border-slate-200 bg-white object-contain p-3"
-                          />
-                        ) : (
-                          <div className="mx-auto flex h-64 w-64 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white">
+                        <img
+                          src="/Qris.jpg"
+                          alt="QRIS Pembayaran"
+                          className="mx-auto h-64 w-64 rounded-xl border border-slate-200 bg-white object-contain p-3"
+                        />
 
-                            <div className="px-6 text-center">
-
-                              <p className="text-sm font-extrabold text-slate-700">
-                                QRIS Belum Tersedia
-                              </p>
-
-                              <p className="mt-2 text-xs font-medium leading-5 text-slate-400">
-                                Masukkan URL gambar QRIS pada kolom
-                                qris_gambar di database paket.
-                              </p>
-
-                            </div>
-
-                          </div>
-                        )}
-
-                        <p className="mt-4 text-xs font-medium text-slate-500">
-                          Scan QRIS di atas menggunakan aplikasi
-                          pembayaran yang mendukung QRIS.
+                        <p className="mt-4 text-xs font-medium leading-5 text-slate-500">
+                          Scan QRIS di atas menggunakan aplikasi pembayaran yang mendukung QRIS.
                         </p>
-
                       </div>
-
                     ) : (
-
-                      /* TRANSFER */
+                      /* TRANSFER / E-WALLET */
                       <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
 
                         <p className="text-xs font-bold text-slate-400">
@@ -659,33 +908,26 @@ export default function PaketPage() {
                         <p className="mt-2 text-base font-extrabold leading-6 text-slate-900">
                           {getMetode()?.nomor}
                         </p>
-
                       </div>
-
                     )}
-
                   </div>
 
-                  {/* ================================================= */}
                   {/* PERINGATAN */}
-                  {/* ================================================= */}
-
                   <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
-
                     <p className="text-sm font-extrabold text-amber-800">
                       Sudah melakukan pembayaran?
                     </p>
 
                     <p className="mt-1 text-xs font-medium leading-5 text-amber-700">
-                      Klik tombol di bawah untuk mengirim konfirmasi
-                      pembayaran kepada admin.
+                      Klik tombol di bawah untuk mengirim konfirmasi pembayaran kepada admin.
                     </p>
-
                   </div>
 
                   {/* KONFIRMASI */}
                   <button
-                    onClick={konfirmasiPembayaran}
+                    onClick={
+                      konfirmasiPembayaran
+                    }
                     disabled={memproses}
                     className="mt-4 w-full rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                   >
@@ -695,75 +937,84 @@ export default function PaketPage() {
                   </button>
 
                   <p className="mt-3 text-center text-[11px] font-medium leading-5 text-slate-400">
-                    Setelah konfirmasi, pembayaran akan diperiksa oleh
-                    admin.
+                    Setelah konfirmasi, pembayaran akan diperiksa oleh admin.
                   </p>
-
                 </div>
               )}
-
             </div>
           </div>
         </div>
       )}
 
       {/* ================================================= */}
-      {/* POPUP PENDAFTARAN (paket gratis butuh_pendaftaran) */}
+      {/* POPUP PENDAFTARAN */}
       {/* ================================================= */}
 
-      {showPendaftaranModal && paketPendaftaran && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 px-4 py-6 backdrop-blur-sm">
+      {showPendaftaranModal &&
+        paketPendaftaran && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 px-4 py-6 backdrop-blur-sm">
 
-          <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white shadow-2xl">
+            <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white shadow-2xl">
 
-            <div className="border-b border-slate-100 px-6 py-5 sm:px-7">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs font-extrabold uppercase tracking-wider text-amber-600">
-                    Syarat Pendaftaran
+              <div className="border-b border-slate-100 px-6 py-5 sm:px-7">
+                <div className="flex items-start justify-between gap-4">
+
+                  <div>
+                    <p className="text-xs font-extrabold uppercase tracking-wider text-amber-600">
+                      Syarat Pendaftaran
+                    </p>
+
+                    <h2 className="mt-1 text-xl font-extrabold text-slate-900">
+                      {paketPendaftaran.nama}
+                    </h2>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setShowPendaftaranModal(
+                        false
+                      )
+                      setPaketPendaftaran(null)
+                    }}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-lg font-bold text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 sm:p-7">
+
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                  <p className="text-sm font-extrabold text-amber-800">
+                    Syarat yang harus dipenuhi:
                   </p>
-                  <h2 className="mt-1 text-xl font-extrabold text-slate-900">
-                    {paketPendaftaran.nama}
-                  </h2>
+
+                  <p className="mt-2 whitespace-pre-line text-sm font-medium leading-6 text-amber-700">
+                    {paketPendaftaran.syarat_pendaftaran ||
+                      'Tidak ada syarat khusus.'}
+                  </p>
                 </div>
 
                 <button
-                  onClick={() => {
-                    setShowPendaftaranModal(false)
-                    setPaketPendaftaran(null)
-                  }}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-lg font-bold text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
+                  onClick={
+                    konfirmasiSyaratTerpenuhi
+                  }
+                  disabled={memproses}
+                  className="mt-5 w-full rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  ×
+                  {memproses
+                    ? 'Mengirim...'
+                    : 'Saya Sudah Memenuhi Syarat'}
                 </button>
-              </div>
-            </div>
 
-            <div className="p-6 sm:p-7">
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-                <p className="text-sm font-extrabold text-amber-800">
-                  Syarat yang harus dipenuhi:
-                </p>
-                <p className="mt-2 whitespace-pre-line text-sm font-medium leading-6 text-amber-700">
-                  {paketPendaftaran.syarat_pendaftaran || 'Tidak ada syarat khusus.'}
+                <p className="mt-3 text-center text-[11px] font-medium leading-5 text-slate-400">
+                  Setelah ini, pendaftaran kamu akan diperiksa oleh admin.
                 </p>
               </div>
-
-              <button
-                onClick={konfirmasiSyaratTerpenuhi}
-                disabled={memproses}
-                className="mt-5 w-full rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {memproses ? 'Mengirim...' : 'Saya Sudah Memenuhi Syarat'}
-              </button>
-
-              <p className="mt-3 text-center text-[11px] font-medium leading-5 text-slate-400">
-                Setelah ini, pendaftaran kamu akan diperiksa oleh admin.
-              </p>
             </div>
           </div>
-        </div>
-      )}
+        )}
     </>
   )
 }
