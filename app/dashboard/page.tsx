@@ -20,11 +20,11 @@ const METODE_BAYAR = [
   },
   {
     nama: 'Gopay',
-    nomor: '08517821611 an M.IQBAL',
+    nomor: '085178921611 an M.IQBAL',
   },
   {
     nama: 'Dana',
-    nomor: '08517821611 M.Iqbal',
+    nomor: '085178921611 M.Iqbal',
   },
 ]
 
