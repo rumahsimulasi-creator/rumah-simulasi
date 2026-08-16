@@ -7,20 +7,24 @@ import { supabase } from '../utils/supabase'
 
 const METODE_BAYAR = [
   {
-    nama: 'BNI',
-    nomor: '1234567890 a.n. Rumah Simulasi',
-  },
-  {
     nama: 'QRIS',
-    nomor: 'Scan QR di kasir (dummy)',
+    nomor: 'Scan QRIS untuk melakukan pembayaran',
   },
   {
-    nama: 'GoPay',
-    nomor: '081234567890 a.n. Rumah Simulasi',
+    nama: 'BNI',
+    nomor: '2008792833 A.N M.IQBAL',
   },
   {
-    nama: 'ShopeePay',
-    nomor: '081234567890 a.n. Rumah Simulasi',
+    nama: 'SeaBank',
+    nomor: '901658813886 a.n. M. IQBAL',
+  },
+  {
+    nama: 'Gopay',
+    nomor: '08517821611 an M.IQBAL',
+  },
+  {
+    nama: 'Dana',
+    nomor: '08517821611 M.Iqbal',
   },
 ]
 
@@ -1667,28 +1671,11 @@ export default function DashboardPage() {
 
                   <div className="mt-5 flex justify-center rounded-2xl border border-slate-200 bg-white p-5">
 
-                    <div className="flex h-48 w-48 items-center justify-center rounded-xl bg-slate-100">
-
-                      <div className="grid grid-cols-7 gap-1">
-
-                        {Array.from({
-                          length: 49,
-                        }).map((_, i) => (
-
-                          <span
-                            key={i}
-                            className={`h-4 w-4 ${
-                              (i * 7 + 3) % 5 < 2
-                                ? 'bg-slate-900'
-                                : 'bg-white'
-                            }`}
-                          />
-
-                        ))}
-
-                      </div>
-
-                    </div>
+                    <img
+                      src="/Qris.jpg"
+                      alt="QRIS Pembayaran"
+                      className="h-64 w-64 rounded-xl object-contain"
+                    />
 
                   </div>
 

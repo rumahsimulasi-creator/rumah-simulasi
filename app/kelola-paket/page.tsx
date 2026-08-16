@@ -50,6 +50,7 @@ export default function KelolaPaketPage() {
       harga: paket.harga,
       butuh_pendaftaran: paket.butuh_pendaftaran || false,
       syarat_pendaftaran: paket.syarat_pendaftaran || '',
+      tampil_di_try_out_akbar: paket.tampil_di_try_out_akbar || false,
     })
   }
 
@@ -63,6 +64,7 @@ export default function KelolaPaketPage() {
         harga: Number(editData.harga),
         butuh_pendaftaran: editData.butuh_pendaftaran,
         syarat_pendaftaran: editData.butuh_pendaftaran ? editData.syarat_pendaftaran : null,
+        tampil_di_try_out_akbar: editData.tampil_di_try_out_akbar,
       })
       .eq('id', id)
     if (error) {
@@ -120,6 +122,15 @@ export default function KelolaPaketPage() {
                   </>
                 )}
 
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                  <input
+                    type="checkbox"
+                    checked={editData.tampil_di_try_out_akbar}
+                    onChange={(e) => setEditData({ ...editData, tampil_di_try_out_akbar: e.target.checked })}
+                  />
+                  Tampilkan di Try Out Akbar
+                </label>
+
                 <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                   <button onClick={() => simpanEdit(paket.id)} style={{ padding: '6px 12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px' }}>Simpan</button>
                   <button onClick={() => setEditId(null)} style={{ padding: '6px 12px', background: '#9ca3af', color: '#fff', border: 'none', borderRadius: '4px' }}>Batal</button>
@@ -132,6 +143,7 @@ export default function KelolaPaketPage() {
                 <p>Waktu: {paket.waktu_menit} menit</p>
                 <p>Harga: {paket.harga === 0 ? 'Gratis' : `Rp${Number(paket.harga).toLocaleString('id-ID')}`}</p>
                 {paket.butuh_pendaftaran && <p>Butuh Pendaftaran: Ya</p>}
+                {paket.tampil_di_try_out_akbar && <p>Try Out Akbar: Ya</p>}
 
                 <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                   <button onClick={() => mulaiEdit(paket)} style={{ padding: '6px 12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px' }}>Edit</button>
