@@ -226,7 +226,7 @@ export default function DashboardPage() {
   }
 
   // =========================
-  // ALUR PENDAFTARAN (paket gratis + butuh_pendaftaran)
+  // ALUR PENDAFTARAN
   // =========================
 
   const bukaPendaftaran = async (paket: any) => {
@@ -247,6 +247,7 @@ export default function DashboardPage() {
 
     const { data: userData } = await supabase.auth.getUser()
     const uid = userData.user?.id
+
     if (!uid) return
 
     const { error } = await supabase.from('pembelian').insert({
@@ -273,9 +274,7 @@ export default function DashboardPage() {
   return (
     <div className="overflow-hidden bg-white">
 
-      {/* ========================================================= */}
       {/* HERO */}
-      {/* ========================================================= */}
 
       <section className="relative overflow-hidden bg-[#EFF7FF]">
 
@@ -404,10 +403,7 @@ export default function DashboardPage() {
 
       </section>
 
-
-      {/* ========================================================= */}
       {/* PAKET */}
-      {/* ========================================================= */}
 
       <section
         id="daftar-paket"
@@ -436,7 +432,6 @@ export default function DashboardPage() {
 
           </div>
 
-
           {paketList.length === 0 ? (
 
             <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-20 text-center">
@@ -451,7 +446,7 @@ export default function DashboardPage() {
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
 
-              {paketList.map((paket) => {
+              {paketList.slice(0, 9).map((paket) => {
 
                 const gratis =
                   Number(paket.harga) === 0
@@ -654,31 +649,29 @@ export default function DashboardPage() {
 
           )}
 
+          {paketList.length > 9 && (
+            <div className="mt-12 flex justify-center">
 
-          <div className="mt-12 flex justify-center">
+              <Link
+                href="/paket"
+                className="group flex items-center gap-3 rounded-xl bg-[#2563EB] px-7 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-blue-100 transition duration-300 hover:-translate-y-1 hover:bg-[#1D4ED8] hover:shadow-xl"
+              >
+                Lihat Lebih Lengkap
 
-            <Link
-              href="/paket"
-              className="group flex items-center gap-3 rounded-xl bg-[#2563EB] px-7 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-blue-100 transition duration-300 hover:-translate-y-1 hover:bg-[#1D4ED8] hover:shadow-xl"
-            >
-              Lihat Lebih Lengkap
+                <span className="transition duration-300 group-hover:translate-x-1">
+                  →
+                </span>
 
-              <span className="transition duration-300 group-hover:translate-x-1">
-                →
-              </span>
+              </Link>
 
-            </Link>
-
-          </div>
+            </div>
+          )}
 
         </div>
 
       </section>
 
-
-      {/* ========================================================= */}
       {/* EBOOK */}
-      {/* ========================================================= */}
 
       <section className="relative overflow-hidden bg-[#F5FAFF] py-20 sm:py-24">
 
@@ -717,7 +710,6 @@ export default function DashboardPage() {
             </Link>
 
           </div>
-
 
           {ebookList.length === 0 ? (
 
@@ -778,7 +770,6 @@ export default function DashboardPage() {
 
                     </div>
 
-
                     <div className="p-6">
 
                       <span className="rounded-full bg-[#EFF6FF] px-3 py-1 text-[10px] font-extrabold uppercase tracking-wide text-[#2563EB]">
@@ -808,7 +799,6 @@ export default function DashboardPage() {
                           </p>
 
                         </div>
-
 
                         {status === 'lunas' ? (
 
@@ -878,7 +868,6 @@ export default function DashboardPage() {
 
           )}
 
-
           <div className="mt-12 flex justify-center">
 
             <Link
@@ -887,7 +876,7 @@ export default function DashboardPage() {
             >
               Lihat Semua Ebook
 
-              <span className="transition group-hover:translate-x-1">
+              <span className="transition duration-300 group-hover:translate-x-1">
                 →
               </span>
 
@@ -899,10 +888,7 @@ export default function DashboardPage() {
 
       </section>
 
-
-      {/* ========================================================= */}
       {/* KEUNGGULAN */}
-      {/* ========================================================= */}
 
       <section className="relative overflow-hidden bg-white py-20 sm:py-28">
 
@@ -926,7 +912,6 @@ export default function DashboardPage() {
             </p>
 
           </div>
-
 
           <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
 
@@ -976,19 +961,14 @@ export default function DashboardPage() {
 
           </div>
 
-
-          {/* MOCKUP */}
-
           <div className="mt-20 flex flex-wrap items-start justify-center gap-8 lg:flex-nowrap">
 
             <div className="w-64 flex-shrink-0 -rotate-2 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl transition duration-500 hover:z-10 hover:-translate-y-4 hover:rotate-0">
 
               <div className="flex items-center gap-1.5 border-b border-slate-100 px-4 py-3">
-
                 <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
                 <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-
               </div>
 
               <div className="bg-[#2563EB] px-5 py-7 text-center">
@@ -1032,15 +1012,12 @@ export default function DashboardPage() {
 
             </div>
 
-
             <div className="w-64 flex-shrink-0 rotate-1 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl transition duration-500 hover:z-10 hover:-translate-y-4 hover:rotate-0 lg:mt-10">
 
               <div className="flex items-center gap-1.5 border-b border-slate-100 px-4 py-3">
-
                 <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
                 <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-
               </div>
 
               <div className="space-y-3 p-5">
@@ -1074,15 +1051,12 @@ export default function DashboardPage() {
 
             </div>
 
-
             <div className="w-64 flex-shrink-0 rotate-1 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl transition duration-500 hover:z-10 hover:-translate-y-4 hover:rotate-0">
 
               <div className="flex items-center gap-1.5 border-b border-slate-100 px-4 py-3">
-
                 <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
                 <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-
               </div>
 
               <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
@@ -1122,15 +1096,12 @@ export default function DashboardPage() {
 
             </div>
 
-
             <div className="w-64 flex-shrink-0 -rotate-2 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl transition duration-500 hover:z-10 hover:-translate-y-4 hover:rotate-0 lg:mt-10">
 
               <div className="flex items-center gap-1.5 border-b border-slate-100 px-4 py-3">
-
                 <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
                 <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-
               </div>
 
               <div className="divide-y divide-slate-100">
@@ -1198,10 +1169,7 @@ export default function DashboardPage() {
 
       </section>
 
-
-      {/* ========================================================= */}
       {/* SECTION TAMBAHAN */}
-      {/* ========================================================= */}
 
       <section className="relative overflow-hidden bg-[#EFF6FF] py-20 sm:py-24">
 
@@ -1237,7 +1205,7 @@ export default function DashboardPage() {
                   'Lihat hasil dan perkembangan latihan.',
                   'Pelajari pembahasan setiap soal.',
                   'Gunakan ebook sebagai materi tambahan.',
-                ].map((text, index) => (
+                ].map((text) => (
 
                   <div
                     key={text}
@@ -1259,7 +1227,6 @@ export default function DashboardPage() {
               </div>
 
             </div>
-
 
             <div className="relative">
 
@@ -1286,9 +1253,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="mt-6 h-3 overflow-hidden rounded-full bg-slate-100">
-
                   <div className="h-full w-[78%] rounded-full bg-[#2563EB]" />
-
                 </div>
 
                 <div className="mt-7 grid grid-cols-3 gap-3">
@@ -1341,10 +1306,7 @@ export default function DashboardPage() {
 
       </section>
 
-
-      {/* ========================================================= */}
       {/* CTA */}
-      {/* ========================================================= */}
 
       <section className="relative overflow-hidden bg-[#2563EB] py-20 sm:py-24">
 
@@ -1390,10 +1352,7 @@ export default function DashboardPage() {
 
       </section>
 
-
-      {/* ========================================================= */}
       {/* FOOTER */}
-      {/* ========================================================= */}
 
       <footer className="bg-[#0F172A] text-white">
 
@@ -1430,7 +1389,6 @@ export default function DashboardPage() {
               </p>
 
             </div>
-
 
             <div>
 
@@ -1472,7 +1430,6 @@ export default function DashboardPage() {
 
             </div>
 
-
             <div>
 
               <h3 className="text-sm font-black">
@@ -1508,7 +1465,6 @@ export default function DashboardPage() {
 
           </div>
 
-
           <div className="mt-12 border-t border-slate-800 pt-7">
 
             <div className="flex flex-col gap-3 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
@@ -1529,10 +1485,7 @@ export default function DashboardPage() {
 
       </footer>
 
-
-      {/* ========================================================= */}
       {/* MODAL PEMBAYARAN */}
-      {/* ========================================================= */}
 
       {pembayaranAktif && (
 
@@ -1573,7 +1526,6 @@ export default function DashboardPage() {
 
                 </div>
 
-
                 <div className="space-y-3">
 
                   {METODE_BAYAR.map((m) => (
@@ -1607,7 +1559,6 @@ export default function DashboardPage() {
                   ))}
 
                 </div>
-
 
                 <button
                   onClick={() => {
@@ -1653,7 +1604,6 @@ export default function DashboardPage() {
 
                 </div>
 
-
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
 
                   <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
@@ -1665,7 +1615,6 @@ export default function DashboardPage() {
                   </p>
 
                 </div>
-
 
                 {metodeDipilih.nama === 'QRIS' && (
 
@@ -1681,7 +1630,6 @@ export default function DashboardPage() {
 
                 )}
 
-
                 <button
                   onClick={() =>
                     handleSudahBayar(
@@ -1692,7 +1640,6 @@ export default function DashboardPage() {
                 >
                   Saya Sudah Bayar
                 </button>
-
 
                 <button
                   onClick={() => {
@@ -1716,10 +1663,7 @@ export default function DashboardPage() {
 
       )}
 
-
-      {/* ========================================================= */}
-      {/* MODAL PENDAFTARAN (paket gratis butuh_pendaftaran) */}
-      {/* ========================================================= */}
+      {/* MODAL PENDAFTARAN */}
 
       {showPendaftaranModal && paketPendaftaran && (
 
@@ -1744,12 +1688,15 @@ export default function DashboardPage() {
             </h3>
 
             <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+
               <p className="text-sm font-extrabold text-amber-800">
                 Syarat yang harus dipenuhi:
               </p>
+
               <p className="mt-2 whitespace-pre-line text-sm font-medium leading-6 text-amber-700">
                 {paketPendaftaran.syarat_pendaftaran || 'Tidak ada syarat khusus.'}
               </p>
+
             </div>
 
             <button

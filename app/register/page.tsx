@@ -23,7 +23,6 @@ export default function RegisterPage() {
       return
     }
 
-    // Tampilkan popup aktivasi email
     setShowSuccess(true)
   }
 
@@ -258,7 +257,7 @@ export default function RegisterPage() {
       </div>
 
       {/* =========================
-          POPUP AKTIVASI EMAIL
+          POPUP PENDAFTARAN BERHASIL
       ========================== */}
       {showSuccess && (
         <div
@@ -288,7 +287,7 @@ export default function RegisterPage() {
               animation: 'popupIn 0.25s ease-out',
             }}
           >
-            {/* Icon email */}
+            {/* Icon sukses */}
             <div
               style={{
                 width: '68px',
@@ -303,7 +302,7 @@ export default function RegisterPage() {
                 fontSize: '30px',
               }}
             >
-              ✉
+              ✓
             </div>
 
             <h2
@@ -319,18 +318,6 @@ export default function RegisterPage() {
 
             <p
               style={{
-                margin: '0 auto 10px',
-                maxWidth: '340px',
-                color: '#475569',
-                fontSize: '14px',
-                lineHeight: '1.6',
-              }}
-            >
-              Kami sudah mengirim email aktivasi ke alamat email kamu.
-            </p>
-
-            <p
-              style={{
                 margin: '0 auto 24px',
                 maxWidth: '340px',
                 color: '#64748b',
@@ -338,36 +325,9 @@ export default function RegisterPage() {
                 lineHeight: '1.6',
               }}
             >
-              Silakan cek inbox email kamu dan klik{' '}
-              <strong style={{ color: '#1e293b' }}>
-                link aktivasi
-              </strong>{' '}
-              untuk mengaktifkan akun.
+              Pendaftaran akun kamu berhasil. Silakan lanjut ke halaman login
+              untuk masuk ke akun kamu.
             </p>
-
-            {/* Info tambahan */}
-            <div
-              style={{
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '10px',
-                padding: '12px 14px',
-                marginBottom: '24px',
-                color: '#64748b',
-                fontSize: '12px',
-                lineHeight: '1.5',
-              }}
-            >
-              Tidak menemukan emailnya? Coba cek folder{' '}
-              <strong style={{ color: '#334155' }}>
-                Spam
-              </strong>{' '}
-              atau{' '}
-              <strong style={{ color: '#334155' }}>
-                Promotions
-              </strong>
-              .
-            </div>
 
             <button
               onClick={goToLogin}

@@ -9,6 +9,7 @@ export default function Navbar() {
   const [user, setUser] = useState<any>(null)
   const [role, setRole] = useState<string | null>(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const [promo, setPromo] = useState<any>(null)
@@ -42,7 +43,6 @@ export default function Navbar() {
       setLoading(false)
     }
 
-    // Ambil session saat pertama kali Navbar dimuat
     const initialize = async () => {
       const {
         data: { session },
@@ -55,7 +55,6 @@ export default function Navbar() {
 
     initialize()
 
-    // Dengarkan perubahan login/logout secara langsung
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -89,11 +88,12 @@ export default function Navbar() {
   }, [])
 
   // =========================
-  // POP-UP PROMOSI (muncul 1x per kunjungan/sesi)
+  // POP-UP PROMOSI
   // =========================
   useEffect(() => {
     const cekPromo = async () => {
       const sudahMuncul = sessionStorage.getItem('promo_shown')
+
       if (sudahMuncul) return
 
       const { data } = await supabase
@@ -110,11 +110,13 @@ export default function Navbar() {
         sessionStorage.setItem('promo_shown', '1')
       }
     }
+
     cekPromo()
   }, [])
 
   const handleKlikPromo = () => {
     setShowPromo(false)
+
     if (user) {
       router.push('/paket')
     } else {
@@ -127,12 +129,13 @@ export default function Navbar() {
     setUser(null)
     setRole(null)
     setDropdownOpen(false)
+    setMobileMenuOpen(false)
     router.push('/login')
   }
 
   const menuUser = [
     { label: 'Dashboard', href: '/dashboard' },
-    { label: 'Paket', href: '/paket' },
+    { label: 'Tryout', href: '/paket' },
     { label: 'Ebook', href: '/ebook' },
     { label: 'Ranking', href: '/ranking' },
     { label: 'Paket Simulasi Saya', href: '/paket-saya' },
@@ -146,13 +149,16 @@ export default function Navbar() {
     { label: 'Konfirmasi Pembelian', href: '/admin-pembelian' },
     { label: 'Tambah Ebook', href: '/admin-ebook' },
     { label: 'Kelola Ebook', href: '/kelola-ebook' },
-    { label: 'Konfirmasi Pembelian Ebook', href: '/admin-pembelian-ebook' },
+    {
+      label: 'Konfirmasi Pembelian Ebook',
+      href: '/admin-pembelian-ebook',
+    },
     { label: 'Pop-up Promosi', href: '/admin-promo' },
   ]
 
   const menuTamu = [
     { label: 'Dashboard', href: '/dashboard' },
-    { label: 'Paket', href: '/paket' },
+    { label: 'Tryout', href: '/paket' },
     { label: 'Ebook', href: '/ebook' },
     { label: 'Ranking', href: '/ranking' },
   ]
@@ -163,46 +169,56 @@ export default function Navbar() {
       ? menuAdmin
       : menuUser
 
-  if (loading) {
+  const isActive = (href: string) => {
     return (
-      <nav className="h-[78px] border-b border-slate-200 bg-white" />
+      pathname === href ||
+      (href !== '/dashboard' && pathname.startsWith(`${href}/`))
     )
+  }
+
+  const handleMobileMenuClick = (href: string) => {
+    setMobileMenuOpen(false)
+    router.push(href)
+  }
+
+  if (loading) {
+    return <nav className="h-[78px] border-b border-slate-200 bg-white" />
   }
 
   return (
     <>
       <nav className="sticky top-0 z-50 border-b border-slate-200 bg-white">
-        <div className="mx-auto flex h-[78px] max-w-[1280px] items-center justify-between px-6 sm:px-8">
+        <div className="mx-auto flex min-h-[78px] max-w-[1280px] items-center justify-between px-4 sm:px-6 lg:px-8">
 
           {/* BRAND */}
           <Link
             href="/dashboard"
-            className="flex shrink-0 items-center gap-3 no-underline"
+            className="flex shrink-0 items-center gap-2.5 no-underline sm:gap-3"
+            onClick={() => setMobileMenuOpen(false)}
           >
             <img
               src="/logo.png"
               alt="Rumah Simulasi"
-              className="h-11 w-11 rounded-xl object-contain"
+              className="h-10 w-10 rounded-xl object-contain sm:h-11 sm:w-11"
             />
 
-            <span className="text-[20px] font-extrabold tracking-tight text-slate-900">
+            <span className="text-[17px] font-extrabold tracking-tight text-slate-900 sm:text-[20px]">
               Rumah <span className="text-[#2563EB]">Simulasi</span>
             </span>
           </Link>
 
-          {/* MENU */}
-          <div className="hidden items-center gap-9 sm:flex">
+          {/* =========================
+              MENU DESKTOP
+          ========================== */}
+          <div className="hidden items-center gap-6 lg:flex xl:gap-9">
             {menu.map((m) => {
-              const aktif =
-                pathname === m.href ||
-                (m.href !== '/dashboard' &&
-                  pathname.startsWith(`${m.href}/`))
+              const aktif = isActive(m.href)
 
               return (
                 <Link
                   key={m.href}
                   href={m.href}
-                  className={`text-[15px] font-semibold transition-colors ${
+                  className={`whitespace-nowrap text-[14px] font-semibold transition-colors xl:text-[15px] ${
                     aktif
                       ? 'text-[#2563EB]'
                       : 'text-slate-600 hover:text-[#2563EB]'
@@ -220,8 +236,10 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* ACCOUNT */}
-          <div className="relative shrink-0">
+          {/* =========================
+              ACCOUNT DESKTOP
+          ========================== */}
+          <div className="relative hidden shrink-0 lg:block">
             {!user ? (
               <div className="flex items-center gap-4">
                 <Link
@@ -282,7 +300,110 @@ export default function Navbar() {
             )}
           </div>
 
+          {/* =========================
+              MOBILE BUTTON
+          ========================== */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-2xl text-slate-700 transition hover:bg-slate-50 lg:hidden"
+            aria-label="Buka menu"
+          >
+            {mobileMenuOpen ? '✕' : '☰'}
+          </button>
         </div>
+
+        {/* =========================
+            MOBILE DROPDOWN MENU
+        ========================== */}
+        {mobileMenuOpen && (
+          <div className="border-t border-slate-200 bg-white shadow-lg lg:hidden">
+            <div className="mx-auto max-w-[1280px] px-4 py-3 sm:px-6">
+
+              {/* MENU */}
+              <div className="flex flex-col">
+                {menu.map((m) => {
+                  const aktif = isActive(m.href)
+
+                  return (
+                    <button
+                      key={m.href}
+                      onClick={() => handleMobileMenuClick(m.href)}
+                      className={`flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-left text-[14px] font-semibold transition ${
+                        aktif
+                          ? 'bg-[#EFF6FF] text-[#2563EB]'
+                          : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>{m.label}</span>
+
+                      {aktif && (
+                        <span className="text-[#2563EB]">●</span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* ADMIN BADGE */}
+              {role === 'admin' && (
+                <div className="mt-2 border-t border-slate-100 pt-3">
+                  <span className="inline-flex rounded-full bg-[#EFF6FF] px-3 py-1.5 text-[11px] font-extrabold text-[#2563EB]">
+                    Admin
+                  </span>
+                </div>
+              )}
+
+              {/* ACCOUNT MOBILE */}
+              <div className="mt-3 border-t border-slate-100 pt-3">
+                {!user ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <Link
+                      href="/login"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-center rounded-xl border border-slate-200 px-4 py-3 text-[14px] font-bold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      Login
+                    </Link>
+
+                    <Link
+                      href="/register"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-center rounded-xl bg-[#2563EB] px-4 py-3 text-[14px] font-bold text-white shadow-sm transition hover:bg-[#1D4ED8]"
+                    >
+                      Daftar
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1">
+
+                    {role !== 'admin' && (
+                      <button
+                        onClick={() => handleMobileMenuClick('/riwayat')}
+                        className="w-full rounded-xl px-4 py-3 text-left text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50"
+                      >
+                        Riwayat Nilai
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => handleMobileMenuClick('/edit-profil')}
+                      className="w-full rounded-xl px-4 py-3 text-left text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      Edit Profil
+                    </button>
+
+                    <button
+                      onClick={handleLogout}
+                      className="mt-1 w-full rounded-xl px-4 py-3 text-left text-[14px] font-bold text-red-600 transition hover:bg-red-50"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* ========================================================= */}
@@ -297,6 +418,7 @@ export default function Navbar() {
           }}
         >
           <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl">
+
             <button
               onClick={() => setShowPromo(false)}
               className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-lg font-bold text-slate-600 shadow hover:bg-white"
@@ -313,9 +435,14 @@ export default function Navbar() {
             )}
 
             <div className="p-6 text-center">
-              <h2 className="text-xl font-black text-slate-900">{promo.judul}</h2>
+              <h2 className="text-xl font-black text-slate-900">
+                {promo.judul}
+              </h2>
+
               {promo.teks && (
-                <p className="mt-2 text-sm leading-6 text-slate-600">{promo.teks}</p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {promo.teks}
+                </p>
               )}
 
               <button
