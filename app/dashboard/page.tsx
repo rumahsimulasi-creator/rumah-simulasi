@@ -39,53 +39,68 @@ export default function DashboardPage() {
 
   const [pembayaranAktif, setPembayaranAktif] = useState<any>(null)
   const [metodeDipilih, setMetodeDipilih] = useState<any>(null)
-  const [jenisPembayaran, setJenisPembayaran] = useState<'paket' | 'ebook'>('paket')
+  const [jenisPembayaran, setJenisPembayaran] =
+    useState<'paket' | 'ebook'>('paket')
 
-  const [showPendaftaranModal, setShowPendaftaranModal] = useState(false)
-  const [paketPendaftaran, setPaketPendaftaran] = useState<any>(null)
+  const [showPendaftaranModal, setShowPendaftaranModal] =
+    useState(false)
+
+  const [paketPendaftaran, setPaketPendaftaran] =
+    useState<any>(null)
 
   const router = useRouter()
 
   const fetchData = async () => {
+    // PAKET
+    // Diurutkan berdasarkan ID terkecil -> terbesar
+    // sehingga urutannya mengikuti data paling atas di database.
     const { data: paketData } = await supabase
       .from('paket')
       .select('*')
+      .order('id', { ascending: true })
 
     if (paketData) {
       setPaketList(paketData)
     }
 
+    // EBOOK
     const { data: ebookData } = await supabase
       .from('ebook')
       .select('*')
+      .order('id', { ascending: true })
 
     if (ebookData) {
       setEbookList(ebookData)
     }
 
-    const { data: userData } = await supabase.auth.getUser()
+    const { data: userData } =
+      await supabase.auth.getUser()
 
     const uid = userData.user?.id ?? null
 
     setUserId(uid)
 
     if (uid) {
-      const { data: pembelianData } = await supabase
-        .from('pembelian')
-        .select('*')
-        .eq('user_id', uid)
+      const { data: pembelianData } =
+        await supabase
+          .from('pembelian')
+          .select('*')
+          .eq('user_id', uid)
 
       if (pembelianData) {
         setPembelianList(pembelianData)
       }
 
-      const { data: pembelianEbookData } = await supabase
-        .from('pembelian_ebook')
-        .select('*')
-        .eq('user_id', uid)
+      const { data: pembelianEbookData } =
+        await supabase
+          .from('pembelian_ebook')
+          .select('*')
+          .eq('user_id', uid)
 
       if (pembelianEbookData) {
-        setPembelianEbookList(pembelianEbookData)
+        setPembelianEbookList(
+          pembelianEbookData
+        )
       }
     }
   }
@@ -95,7 +110,8 @@ export default function DashboardPage() {
   }, [])
 
   const handleBeli = async (paketId: string) => {
-    const { data: userData } = await supabase.auth.getUser()
+    const { data: userData } =
+      await supabase.auth.getUser()
 
     const uid = userData.user?.id
 
@@ -105,15 +121,16 @@ export default function DashboardPage() {
       return
     }
 
-    const { data, error } = await supabase
-      .from('pembelian')
-      .insert({
-        user_id: uid,
-        paket_id: paketId,
-        status: 'belum_bayar',
-      })
-      .select()
-      .single()
+    const { data, error } =
+      await supabase
+        .from('pembelian')
+        .insert({
+          user_id: uid,
+          paket_id: paketId,
+          status: 'belum_bayar',
+        })
+        .select()
+        .single()
 
     if (error) {
       alert(error.message)
@@ -127,8 +144,11 @@ export default function DashboardPage() {
     fetchData()
   }
 
-  const handleBeliEbook = async (ebookId: string) => {
-    const { data: userData } = await supabase.auth.getUser()
+  const handleBeliEbook = async (
+    ebookId: string
+  ) => {
+    const { data: userData } =
+      await supabase.auth.getUser()
 
     const uid = userData.user?.id
 
@@ -138,15 +158,16 @@ export default function DashboardPage() {
       return
     }
 
-    const { data, error } = await supabase
-      .from('pembelian_ebook')
-      .insert({
-        user_id: uid,
-        ebook_id: ebookId,
-        status: 'belum_bayar',
-      })
-      .select()
-      .single()
+    const { data, error } =
+      await supabase
+        .from('pembelian_ebook')
+        .insert({
+          user_id: uid,
+          ebook_id: ebookId,
+          status: 'belum_bayar',
+        })
+        .select()
+        .single()
 
     if (error) {
       alert(error.message)
@@ -160,7 +181,9 @@ export default function DashboardPage() {
     fetchData()
   }
 
-  const handleSudahBayar = async (pembelianId: string) => {
+  const handleSudahBayar = async (
+    pembelianId: string
+  ) => {
     const table =
       jenisPembayaran === 'ebook'
         ? 'pembelian_ebook'
@@ -184,13 +207,17 @@ export default function DashboardPage() {
     fetchData()
   }
 
-  const getPembelian = (paketId: string) => {
+  const getPembelian = (
+    paketId: string
+  ) => {
     return pembelianList.find(
       (p) => p.paket_id === paketId
     )
   }
 
-  const getPembelianEbook = (ebookId: string) => {
+  const getPembelianEbook = (
+    ebookId: string
+  ) => {
     return pembelianEbookList.find(
       (p) => p.ebook_id === ebookId
     )
@@ -208,7 +235,9 @@ export default function DashboardPage() {
     }
   }
 
-  const handleMulaiUjian = async (paketId: string) => {
+  const handleMulaiUjian = async (
+    paketId: string
+  ) => {
     const { data: userData } =
       await supabase.auth.getUser()
 
@@ -229,8 +258,11 @@ export default function DashboardPage() {
   // ALUR PENDAFTARAN
   // =========================
 
-  const bukaPendaftaran = async (paket: any) => {
-    const { data: userData } = await supabase.auth.getUser()
+  const bukaPendaftaran = async (
+    paket: any
+  ) => {
+    const { data: userData } =
+      await supabase.auth.getUser()
 
     if (!userData.user) {
       alert('Silakan login dulu.')
@@ -242,33 +274,46 @@ export default function DashboardPage() {
     setShowPendaftaranModal(true)
   }
 
-  const konfirmasiSyaratTerpenuhi = async () => {
-    if (!paketPendaftaran) return
+  const konfirmasiSyaratTerpenuhi =
+    async () => {
+      if (!paketPendaftaran) return
 
-    const { data: userData } = await supabase.auth.getUser()
-    const uid = userData.user?.id
+      const { data: userData } =
+        await supabase.auth.getUser()
 
-    if (!uid) return
+      const uid = userData.user?.id
 
-    const { error } = await supabase.from('pembelian').insert({
-      user_id: uid,
-      paket_id: paketPendaftaran.id,
-      status: 'menunggu_konfirmasi',
-    })
+      if (!uid) return
 
-    if (error) {
-      alert(error.message)
-      return
+      const { error } =
+        await supabase
+          .from('pembelian')
+          .insert({
+            user_id: uid,
+            paket_id:
+              paketPendaftaran.id,
+            status:
+              'menunggu_konfirmasi',
+          })
+
+      if (error) {
+        alert(error.message)
+        return
+      }
+
+      setShowPendaftaranModal(false)
+      setPaketPendaftaran(null)
+      fetchData()
     }
 
-    setShowPendaftaranModal(false)
-    setPaketPendaftaran(null)
-    fetchData()
-  }
-
-  const linkWhatsappAdmin = (paket: any) => {
+  const linkWhatsappAdmin = (
+    paket: any
+  ) => {
     const pesan = `Halo admin, saya sudah melakukan syarat pendaftaran untuk paket "${paket.nama}", saya mau konfirmasi.`
-    return `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(pesan)}`
+
+    return `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(
+      pesan
+    )}`
   }
 
   return (
@@ -446,204 +491,228 @@ export default function DashboardPage() {
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
 
-              {paketList.slice(0, 9).map((paket) => {
+              {paketList.slice(0, 9).map(
+                (paket) => {
 
-                const gratis =
-                  Number(paket.harga) === 0
+                  const gratis =
+                    Number(paket.harga) === 0
 
-                const pembelian =
-                  getPembelian(paket.id)
+                  const pembelian =
+                    getPembelian(paket.id)
 
-                const status =
-                  gratis
-                    ? (paket.butuh_pendaftaran
-                        ? (pembelian ? pembelian.status : 'belum_daftar')
-                        : 'gratis')
-                    : pembelian
-                      ? pembelian.status
-                      : 'belum_beli'
+                  const status =
+                    gratis
+                      ? (
+                          paket.butuh_pendaftaran
+                            ? (
+                                pembelian
+                                  ? pembelian.status
+                                  : 'belum_daftar'
+                              )
+                            : 'gratis'
+                        )
+                      : pembelian
+                        ? pembelian.status
+                        : 'belum_beli'
 
-                return (
+                  return (
 
-                  <div
-                    key={paket.id}
-                    className="group relative mx-auto w-full max-w-sm overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition duration-500 hover:-translate-y-2 hover:border-[#BFDBFE] hover:shadow-2xl hover:shadow-blue-100"
-                  >
+                    <div
+                      key={paket.id}
+                      className="group relative mx-auto w-full max-w-sm overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition duration-500 hover:-translate-y-2 hover:border-[#BFDBFE] hover:shadow-2xl hover:shadow-blue-100"
+                    >
 
-                    <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-[#EFF7FF] blur-2xl transition duration-500 group-hover:scale-150" />
+                      <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-[#EFF7FF] blur-2xl transition duration-500 group-hover:scale-150" />
 
-                    <div className="relative">
+                      <div className="relative">
 
-                      <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2">
 
-                        <span className="rounded-full bg-[#EFF7FF] px-3 py-1 text-[10px] font-extrabold tracking-wide text-[#2563EB]">
-                          TRY OUT
-                        </span>
-
-                        {gratis && (
-                          <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-extrabold tracking-wide text-emerald-600">
-                            GRATIS
+                          <span className="rounded-full bg-[#EFF7FF] px-3 py-1 text-[10px] font-extrabold tracking-wide text-[#2563EB]">
+                            TRY OUT
                           </span>
-                        )}
 
-                        {paket.butuh_pendaftaran && (
-                          <span className="rounded-full bg-amber-50 px-3 py-1 text-[10px] font-extrabold tracking-wide text-amber-600">
-                            PERLU DAFTAR
+                          {gratis && (
+                            <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-extrabold tracking-wide text-emerald-600">
+                              GRATIS
+                            </span>
+                          )}
+
+                          {paket.butuh_pendaftaran && (
+                            <span className="rounded-full bg-amber-50 px-3 py-1 text-[10px] font-extrabold tracking-wide text-amber-600">
+                              PERLU DAFTAR
+                            </span>
+                          )}
+
+                        </div>
+
+                        <h3 className="mt-5 text-lg font-black text-slate-900">
+                          {paket.nama}
+                        </h3>
+
+                        <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">
+                          {paket.deskripsi}
+                        </p>
+
+                        <div className="mt-5 flex items-center gap-3 rounded-xl bg-slate-50 p-3">
+
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EAF4FE] text-sm">
+                            ⏱
                           </span>
-                        )}
 
-                      </div>
+                          <div>
 
-                      <h3 className="mt-5 text-lg font-black text-slate-900">
-                        {paket.nama}
-                      </h3>
+                            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                              Durasi
+                            </p>
 
-                      <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">
-                        {paket.deskripsi}
-                      </p>
+                            <p className="text-sm font-bold text-slate-700">
+                              {paket.waktu_menit} menit
+                            </p>
 
-                      <div className="mt-5 flex items-center gap-3 rounded-xl bg-slate-50 p-3">
+                          </div>
 
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EAF4FE] text-sm">
-                          ⏱
-                        </span>
+                        </div>
 
-                        <div>
+                        <div className="mt-5">
 
-                          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-                            Durasi
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Harga
                           </p>
 
-                          <p className="text-sm font-bold text-slate-700">
-                            {paket.waktu_menit} menit
+                          <p className="mt-1 text-xl font-black text-slate-900">
+                            {gratis
+                              ? 'Gratis'
+                              : `Rp${Number(
+                                  paket.harga
+                                ).toLocaleString(
+                                  'id-ID'
+                                )}`}
                           </p>
 
                         </div>
 
-                      </div>
+                        <div className="my-5 border-t border-dashed border-slate-200" />
 
-                      <div className="mt-5">
-
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                          Harga
-                        </p>
-
-                        <p className="mt-1 text-xl font-black text-slate-900">
-                          {gratis
-                            ? 'Gratis'
-                            : `Rp${Number(
-                                paket.harga
-                              ).toLocaleString('id-ID')}`}
-                        </p>
-
-                      </div>
-
-                      <div className="my-5 border-t border-dashed border-slate-200" />
-
-                      {status === 'gratis' ||
-                      status === 'lunas' ? (
-
-                        <button
-                          onClick={() =>
-                            handleMulaiUjian(
-                              paket.id
-                            )
-                          }
-                          className="flex w-full items-center justify-between rounded-xl px-1 py-2 text-sm font-extrabold text-[#2563EB] transition duration-300 hover:px-2"
-                        >
-                          Mulai Ujian
-
-                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF4FE] transition duration-300 group-hover:translate-x-1">
-                            →
-                          </span>
-
-                        </button>
-
-                      ) : status === 'belum_daftar' ? (
-
-                        <button
-                          onClick={() => bukaPendaftaran(paket)}
-                          className="flex w-full items-center justify-between rounded-xl px-1 py-2 text-sm font-extrabold text-amber-600 transition duration-300 hover:px-2"
-                        >
-                          Daftar
-
-                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-50 transition duration-300 group-hover:translate-x-1">
-                            →
-                          </span>
-
-                        </button>
-
-                      ) : status === 'belum_bayar' ? (
-
-                        <button
-                          onClick={() => {
-                            if (pembelian) {
-                              setJenisPembayaran('paket')
-                              setPembayaranAktif(
-                                pembelian
-                              )
-                              setMetodeDipilih(null)
-                            }
-                          }}
-                          className="flex w-full items-center justify-between rounded-xl px-1 py-2 text-sm font-extrabold text-[#2563EB] transition duration-300 hover:px-2"
-                        >
-                          Bayar Sekarang
-
-                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF4FE] transition duration-300 group-hover:translate-x-1">
-                            →
-                          </span>
-
-                        </button>
-
-                      ) : status ===
-                        'menunggu_konfirmasi' ? (
-
-                        <div className="space-y-2">
+                        {status === 'gratis' ||
+                        status === 'lunas' ? (
 
                           <button
-                            disabled
-                            className="w-full cursor-not-allowed rounded-xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-400"
+                            onClick={() =>
+                              handleMulaiUjian(
+                                paket.id
+                              )
+                            }
+                            className="flex w-full items-center justify-between rounded-xl px-1 py-2 text-sm font-extrabold text-[#2563EB] transition duration-300 hover:px-2"
                           >
-                            Menunggu Konfirmasi
+                            Mulai Ujian
+
+                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF4FE] transition duration-300 group-hover:translate-x-1">
+                              →
+                            </span>
+
                           </button>
 
-                          <a
-                            href={linkWhatsappAdmin(paket)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-extrabold text-emerald-700 transition hover:bg-emerald-100"
+                        ) : status ===
+                          'belum_daftar' ? (
+
+                          <button
+                            onClick={() =>
+                              bukaPendaftaran(
+                                paket
+                              )
+                            }
+                            className="flex w-full items-center justify-between rounded-xl px-1 py-2 text-sm font-extrabold text-amber-600 transition duration-300 hover:px-2"
                           >
-                            Hubungi Admin
-                          </a>
+                            Daftar
 
-                        </div>
+                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-50 transition duration-300 group-hover:translate-x-1">
+                              →
+                            </span>
 
-                      ) : (
+                          </button>
 
-                        <button
-                          onClick={() =>
-                            handleBeli(
-                              paket.id
-                            )
-                          }
-                          className="flex w-full items-center justify-between rounded-xl px-1 py-2 text-sm font-extrabold text-[#2563EB] transition duration-300 hover:px-2"
-                        >
-                          Beli
+                        ) : status ===
+                          'belum_bayar' ? (
 
-                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF4FE] transition duration-300 group-hover:translate-x-1">
-                            →
-                          </span>
+                          <button
+                            onClick={() => {
+                              if (pembelian) {
+                                setJenisPembayaran(
+                                  'paket'
+                                )
 
-                        </button>
+                                setPembayaranAktif(
+                                  pembelian
+                                )
 
-                      )}
+                                setMetodeDipilih(
+                                  null
+                                )
+                              }
+                            }}
+                            className="flex w-full items-center justify-between rounded-xl px-1 py-2 text-sm font-extrabold text-[#2563EB] transition duration-300 hover:px-2"
+                          >
+                            Bayar Sekarang
+
+                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF4FE] transition duration-300 group-hover:translate-x-1">
+                              →
+                            </span>
+
+                          </button>
+
+                        ) : status ===
+                          'menunggu_konfirmasi' ? (
+
+                          <div className="space-y-2">
+
+                            <button
+                              disabled
+                              className="w-full cursor-not-allowed rounded-xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-400"
+                            >
+                              Menunggu Konfirmasi
+                            </button>
+
+                            <a
+                              href={linkWhatsappAdmin(
+                                paket
+                              )}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-extrabold text-emerald-700 transition hover:bg-emerald-100"
+                            >
+                              Hubungi Admin
+                            </a>
+
+                          </div>
+
+                        ) : (
+
+                          <button
+                            onClick={() =>
+                              handleBeli(
+                                paket.id
+                              )
+                            }
+                            className="flex w-full items-center justify-between rounded-xl px-1 py-2 text-sm font-extrabold text-[#2563EB] transition duration-300 hover:px-2"
+                          >
+                            Beli
+
+                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF4FE] transition duration-300 group-hover:translate-x-1">
+                              →
+                            </span>
+
+                          </button>
+
+                        )}
+
+                      </div>
 
                     </div>
 
-                  </div>
-
-                )
-              })}
+                  )
+                }
+              )}
 
             </div>
 
@@ -725,144 +794,151 @@ export default function DashboardPage() {
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
 
-              {ebookList.slice(0, 3).map((ebook) => {
+              {ebookList
+                .slice(0, 3)
+                .map((ebook) => {
 
-                const pembelian =
-                  getPembelianEbook(
-                    ebook.id
-                  )
+                  const pembelian =
+                    getPembelianEbook(
+                      ebook.id
+                    )
 
-                const status =
-                  pembelian
-                    ? pembelian.status
-                    : 'belum_beli'
+                  const status =
+                    pembelian
+                      ? pembelian.status
+                      : 'belum_beli'
 
-                return (
+                  return (
 
-                  <div
-                    key={ebook.id}
-                    className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition duration-500 hover:-translate-y-2 hover:border-[#BFDBFE] hover:shadow-2xl hover:shadow-blue-100"
-                  >
+                    <div
+                      key={ebook.id}
+                      className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition duration-500 hover:-translate-y-2 hover:border-[#BFDBFE] hover:shadow-2xl hover:shadow-blue-100"
+                    >
 
-                    <div className="relative flex h-64 items-center justify-center overflow-hidden bg-gradient-to-br from-[#DBEAFE] to-[#EFF6FF] p-7">
+                      <div className="relative flex h-64 items-center justify-center overflow-hidden bg-gradient-to-br from-[#DBEAFE] to-[#EFF6FF] p-7">
 
-                      <div className="absolute h-40 w-40 rounded-full bg-white/70 blur-3xl" />
+                        <div className="absolute h-40 w-40 rounded-full bg-white/70 blur-3xl" />
 
-                      {ebook.sampul_gambar ? (
+                        {ebook.sampul_gambar ? (
 
-                        <img
-                          src={ebook.sampul_gambar}
-                          alt={ebook.judul}
-                          className="relative h-52 w-36 rounded-lg object-cover shadow-2xl transition duration-500 group-hover:scale-105 group-hover:-rotate-2"
-                        />
-
-                      ) : (
-
-                        <div className="relative flex h-52 w-36 items-center justify-center rounded-lg bg-white shadow-xl">
-
-                          <span className="px-4 text-center text-xs font-black text-[#2563EB]">
-                            {ebook.judul}
-                          </span>
-
-                        </div>
-
-                      )}
-
-                    </div>
-
-                    <div className="p-6">
-
-                      <span className="rounded-full bg-[#EFF6FF] px-3 py-1 text-[10px] font-extrabold uppercase tracking-wide text-[#2563EB]">
-                        Ebook
-                      </span>
-
-                      <h3 className="mt-4 line-clamp-2 text-lg font-black text-slate-900">
-                        {ebook.judul}
-                      </h3>
-
-                      <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">
-                        {ebook.deskripsi}
-                      </p>
-
-                      <div className="mt-5 flex items-end justify-between gap-4">
-
-                        <div>
-
-                          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                            Harga
-                          </p>
-
-                          <p className="mt-1 text-lg font-black text-slate-900">
-                            Rp{Number(
-                              ebook.harga
-                            ).toLocaleString('id-ID')}
-                          </p>
-
-                        </div>
-
-                        {status === 'lunas' ? (
-
-                          <a
-                            href={ebook.link_drive}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="rounded-xl bg-[#2563EB] px-4 py-2.5 text-xs font-extrabold text-white transition hover:bg-[#1D4ED8]"
-                          >
-                            Buka Ebook
-                          </a>
-
-                        ) : status ===
-                          'menunggu_konfirmasi' ? (
-
-                          <span className="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-400">
-                            Menunggu
-                          </span>
-
-                        ) : status ===
-                          'belum_bayar' ? (
-
-                          <button
-                            onClick={() => {
-                              setJenisPembayaran(
-                                'ebook'
-                              )
-
-                              setPembayaranAktif(
-                                pembelian
-                              )
-
-                              setMetodeDipilih(
-                                null
-                              )
-                            }}
-                            className="rounded-xl bg-[#2563EB] px-4 py-2.5 text-xs font-extrabold text-white transition hover:bg-[#1D4ED8]"
-                          >
-                            Bayar
-                          </button>
+                          <img
+                            src={ebook.sampul_gambar}
+                            alt={ebook.judul}
+                            className="relative h-52 w-36 rounded-lg object-cover shadow-2xl transition duration-500 group-hover:scale-105 group-hover:-rotate-2"
+                          />
 
                         ) : (
 
-                          <button
-                            onClick={() =>
-                              handleBeliEbook(
-                                ebook.id
-                              )
-                            }
-                            className="rounded-xl bg-[#2563EB] px-4 py-2.5 text-xs font-extrabold text-white transition hover:bg-[#1D4ED8]"
-                          >
-                            Beli
-                          </button>
+                          <div className="relative flex h-52 w-36 items-center justify-center rounded-lg bg-white shadow-xl">
+
+                            <span className="px-4 text-center text-xs font-black text-[#2563EB]">
+                              {ebook.judul}
+                            </span>
+
+                          </div>
 
                         )}
 
                       </div>
 
+                      <div className="p-6">
+
+                        <span className="rounded-full bg-[#EFF6FF] px-3 py-1 text-[10px] font-extrabold uppercase tracking-wide text-[#2563EB]">
+                          Ebook
+                        </span>
+
+                        <h3 className="mt-4 line-clamp-2 text-lg font-black text-slate-900">
+                          {ebook.judul}
+                        </h3>
+
+                        <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">
+                          {ebook.deskripsi}
+                        </p>
+
+                        <div className="mt-5 flex items-end justify-between gap-4">
+
+                          <div>
+
+                            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                              Harga
+                            </p>
+
+                            <p className="mt-1 text-lg font-black text-slate-900">
+                              Rp{Number(
+                                ebook.harga
+                              ).toLocaleString(
+                                'id-ID'
+                              )}
+                            </p>
+
+                          </div>
+
+                          {status ===
+                          'lunas' ? (
+
+                            <a
+                              href={
+                                ebook.link_drive
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="rounded-xl bg-[#2563EB] px-4 py-2.5 text-xs font-extrabold text-white transition hover:bg-[#1D4ED8]"
+                            >
+                              Buka Ebook
+                            </a>
+
+                          ) : status ===
+                            'menunggu_konfirmasi' ? (
+
+                            <span className="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-400">
+                              Menunggu
+                            </span>
+
+                          ) : status ===
+                            'belum_bayar' ? (
+
+                            <button
+                              onClick={() => {
+                                setJenisPembayaran(
+                                  'ebook'
+                                )
+
+                                setPembayaranAktif(
+                                  pembelian
+                                )
+
+                                setMetodeDipilih(
+                                  null
+                                )
+                              }}
+                              className="rounded-xl bg-[#2563EB] px-4 py-2.5 text-xs font-extrabold text-white transition hover:bg-[#1D4ED8]"
+                            >
+                              Bayar
+                            </button>
+
+                          ) : (
+
+                            <button
+                              onClick={() =>
+                                handleBeliEbook(
+                                  ebook.id
+                                )
+                              }
+                              className="rounded-xl bg-[#2563EB] px-4 py-2.5 text-xs font-extrabold text-white transition hover:bg-[#1D4ED8]"
+                            >
+                              Beli
+                            </button>
+
+                          )}
+
+                        </div>
+
+                      </div>
+
                     </div>
 
-                  </div>
-
-                )
-              })}
+                  )
+                })}
 
             </div>
 
@@ -989,24 +1065,26 @@ export default function DashboardPage() {
                   ['TWK', '120'],
                   ['TIU', '145'],
                   ['TKP', '120'],
-                ].map(([label, value]) => (
+                ].map(
+                  ([label, value]) => (
 
-                  <div
-                    key={label}
-                    className="px-2 py-4 text-center"
-                  >
+                    <div
+                      key={label}
+                      className="px-2 py-4 text-center"
+                    >
 
-                    <p className="text-[9px] font-bold text-slate-400">
-                      {label}
-                    </p>
+                      <p className="text-[9px] font-bold text-slate-400">
+                        {label}
+                      </p>
 
-                    <p className="mt-1 text-sm font-black text-slate-900">
-                      {value}
-                    </p>
+                      <p className="mt-1 text-sm font-black text-slate-900">
+                        {value}
+                      </p>
 
-                  </div>
+                    </div>
 
-                ))}
+                  )
+                )}
 
               </div>
 
@@ -1110,54 +1188,56 @@ export default function DashboardPage() {
                   ['1', 'Ahmad F.', '465'],
                   ['2', 'Siti R.', '452'],
                   ['12', 'Kamu', '385'],
-                ].map(([rank, name, score], index) => (
+                ].map(
+                  ([rank, name, score], index) => (
 
-                  <div
-                    key={rank}
-                    className={`flex items-center justify-between px-5 py-4 ${
-                      index === 2
-                        ? 'bg-[#EFF6FF]'
-                        : ''
-                    }`}
-                  >
+                    <div
+                      key={rank}
+                      className={`flex items-center justify-between px-5 py-4 ${
+                        index === 2
+                          ? 'bg-[#EFF6FF]'
+                          : ''
+                      }`}
+                    >
 
-                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3">
+
+                        <span
+                          className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-black ${
+                            index === 2
+                              ? 'bg-[#2563EB] text-white'
+                              : 'bg-[#EFF6FF] text-[#2563EB]'
+                          }`}
+                        >
+                          {rank}
+                        </span>
+
+                        <span
+                          className={`text-xs ${
+                            index === 2
+                              ? 'font-black text-[#2563EB]'
+                              : 'text-slate-700'
+                          }`}
+                        >
+                          {name}
+                        </span>
+
+                      </div>
 
                       <span
-                        className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-black ${
+                        className={`text-xs font-black ${
                           index === 2
-                            ? 'bg-[#2563EB] text-white'
-                            : 'bg-[#EFF6FF] text-[#2563EB]'
+                            ? 'text-[#2563EB]'
+                            : 'text-slate-900'
                         }`}
                       >
-                        {rank}
-                      </span>
-
-                      <span
-                        className={`text-xs ${
-                          index === 2
-                            ? 'font-black text-[#2563EB]'
-                            : 'text-slate-700'
-                        }`}
-                      >
-                        {name}
+                        {score}
                       </span>
 
                     </div>
 
-                    <span
-                      className={`text-xs font-black ${
-                        index === 2
-                          ? 'text-[#2563EB]'
-                          : 'text-slate-900'
-                      }`}
-                    >
-                      {score}
-                    </span>
-
-                  </div>
-
-                ))}
+                  )
+                )}
 
               </div>
 
@@ -1493,7 +1573,10 @@ export default function DashboardPage() {
           className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 px-4 py-6 backdrop-blur-sm"
           onClick={(e) => {
 
-            if (e.target === e.currentTarget) {
+            if (
+              e.target ===
+              e.currentTarget
+            ) {
 
               setPembayaranAktif(null)
               setMetodeDipilih(null)
@@ -1616,7 +1699,8 @@ export default function DashboardPage() {
 
                 </div>
 
-                {metodeDipilih.nama === 'QRIS' && (
+                {metodeDipilih.nama ===
+                  'QRIS' && (
 
                   <div className="mt-5 flex justify-center rounded-2xl border border-slate-200 bg-white p-5">
 
@@ -1665,15 +1749,23 @@ export default function DashboardPage() {
 
       {/* MODAL PENDAFTARAN */}
 
-      {showPendaftaranModal && paketPendaftaran && (
+      {showPendaftaranModal &&
+        paketPendaftaran && (
 
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 px-4 py-6 backdrop-blur-sm"
           onClick={(e) => {
-            if (e.target === e.currentTarget) {
+
+            if (
+              e.target ===
+              e.currentTarget
+            ) {
+
               setShowPendaftaranModal(false)
               setPaketPendaftaran(null)
+
             }
+
           }}
         >
 
@@ -1694,13 +1786,16 @@ export default function DashboardPage() {
               </p>
 
               <p className="mt-2 whitespace-pre-line text-sm font-medium leading-6 text-amber-700">
-                {paketPendaftaran.syarat_pendaftaran || 'Tidak ada syarat khusus.'}
+                {paketPendaftaran.syarat_pendaftaran ||
+                  'Tidak ada syarat khusus.'}
               </p>
 
             </div>
 
             <button
-              onClick={konfirmasiSyaratTerpenuhi}
+              onClick={
+                konfirmasiSyaratTerpenuhi
+              }
               className="mt-5 w-full rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-emerald-700"
             >
               Saya Sudah Memenuhi Syarat
