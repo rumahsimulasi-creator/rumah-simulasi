@@ -65,6 +65,7 @@ function UjianContent() {
         .from('soal')
         .select('*')
         .eq('paket_id', paketId)
+        .order('id', { ascending: true })
 
       if (!soalError && soalData) {
         setSoalList(soalData)
@@ -80,26 +81,42 @@ function UjianContent() {
   // TIMER
   // =========================
   useEffect(() => {
-    if (loading || soalList.length === 0 || showHasil) return
+    if (loading || soalList.length === 0 || showHasil || !paketId) return
 
-    if (waktuTersisa <= 0) {
-      handleSelesai(true)
-      return
+    const timerKey = `ujian_timer_${paketId}`
+    const sekarang = Date.now()
+
+    const timerTersimpan = localStorage.getItem(timerKey)
+
+    let waktuSelesai: number
+
+    if (timerTersimpan) {
+      waktuSelesai = Number(timerTersimpan)
+    } else {
+      waktuSelesai = sekarang + 100 * 60 * 1000
+      localStorage.setItem(timerKey, String(waktuSelesai))
     }
 
-    const timer = setInterval(() => {
-      setWaktuTersisa((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer)
-          return 0
-        }
+    const updateTimer = () => {
+      const sisa = Math.max(
+        0,
+        Math.ceil((waktuSelesai - Date.now()) / 1000)
+      )
 
-        return prev - 1
-      })
-    }, 1000)
+      setWaktuTersisa(sisa)
+
+      if (sisa <= 0) {
+        clearInterval(timer)
+        handleSelesai(true)
+      }
+    }
+
+    updateTimer()
+
+    const timer = setInterval(updateTimer, 1000)
 
     return () => clearInterval(timer)
-  }, [loading, soalList.length, showHasil, waktuTersisa])
+  }, [loading, soalList.length, showHasil, paketId])
 
   // =========================
   // FORMAT TIMER
@@ -182,7 +199,6 @@ function UjianContent() {
         tkp += poin
         benar = null
       } else {
-        // TWK / TIU
         benar = pilihanUser === soal.jawaban_benar
         poin = benar ? 5 : 0
 
@@ -255,6 +271,11 @@ function UjianContent() {
 
     setShowHasil(true)
     setMenyimpan(false)
+
+    // Hapus timer setelah ujian selesai
+    if (paketId) {
+      localStorage.removeItem(`ujian_timer_${paketId}`)
+    }
 
     if (otomatis) {
       // Popup akan menampilkan hasil karena waktu habis
@@ -452,7 +473,7 @@ function UjianContent() {
             </div>
 
             {soal.pertanyaan_teks && (
-              <p className="text-[15px] font-medium leading-7 text-slate-700 sm:text-base">
+              <p className="whitespace-pre-line text-[15px] font-medium leading-7 text-slate-700 sm:text-base">
                 {soal.pertanyaan_teks}
               </p>
             )}
@@ -501,7 +522,7 @@ function UjianContent() {
                       {huruf.toUpperCase()}
                     </span>
 
-                    <span className="pt-1 text-sm font-semibold leading-6 text-slate-700">
+                    <span className="whitespace-pre-line pt-1 text-sm font-semibold leading-6 text-slate-700">
 
                       {teks}
 

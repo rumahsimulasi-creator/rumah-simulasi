@@ -27,7 +27,7 @@ const METODE_BAYAR = [
   },
 ]
 
-const NOMOR_WA_ADMIN = '62895403173470'
+const NOMOR_WA_ADMIN = '6285179821611'
 
 export default function EbookPage() {
   const [ebookList, setEbookList] = useState<any[]>([])
