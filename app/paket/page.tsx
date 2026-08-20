@@ -58,17 +58,21 @@ export default function PaketPage() {
   // =========================
 
   const fetchData = async () => {
+    // PAKET DIAMBIL SESUAI URUTAN DIBUAT
     const { data: paketData } = await supabase
       .from('paket')
       .select('*')
+      .order('created_at', { ascending: true })
 
     if (paketData) {
       setPaketList(paketData)
     }
 
+    // BUNDLING DIAMBIL SESUAI URUTAN DIBUAT
     const { data: bundlingData } = await supabase
       .from('paket_bundling')
       .select('*')
+      .order('created_at', { ascending: true })
 
     if (bundlingData) {
       const bundlingDenganIsi = await Promise.all(
@@ -252,8 +256,6 @@ export default function PaketPage() {
 
       const pembelian = getPembelian(paketTerpilih.id)
 
-      // Jika belum ada transaksi, baru buat setelah
-      // user menekan konfirmasi pembayaran
       if (!pembelian) {
         const { error } = await supabase
           .from('pembelian')
@@ -298,8 +300,6 @@ export default function PaketPage() {
         bundlingTerpilih.id
       )
 
-      // Jika belum ada transaksi, baru buat setelah
-      // user menekan konfirmasi pembayaran
       if (!pembelian) {
         const { error } = await supabase
           .from('pembelian_bundling')
@@ -345,10 +345,6 @@ export default function PaketPage() {
   // =========================
 
   const tutupModal = () => {
-    // Menutup popup TIDAK mengubah status pembayaran.
-    // Transaksi hanya dibuat/diubah ketika tombol
-    // "Konfirmasi Pembayaran" ditekan.
-
     setShowModal(false)
     setPaketTerpilih(null)
     setBundlingTerpilih(null)
@@ -490,10 +486,7 @@ export default function PaketPage() {
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
 
-              {/* ========================= */}
               {/* KARTU BUNDLING */}
-              {/* ========================= */}
-
               {bundlingList.map((bundling) => {
                 const status =
                   getStatusBundling(bundling)
@@ -587,10 +580,7 @@ export default function PaketPage() {
                 )
               })}
 
-              {/* ========================= */}
               {/* KARTU PAKET BIASA */}
-              {/* ========================= */}
-
               {paketList.map((paket) => {
                 const gratis =
                   Number(paket.harga) === 0
@@ -733,18 +723,13 @@ export default function PaketPage() {
         </div>
       </main>
 
-      {/* ================================================= */}
       {/* POPUP PEMBAYARAN */}
-      {/* ================================================= */}
-
       {showModal && itemModalAktif && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 px-4 py-6 backdrop-blur-sm">
           <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white shadow-2xl">
 
-            {/* HEADER */}
             <div className="border-b border-slate-100 px-6 py-5 sm:px-7">
               <div className="flex items-start justify-between gap-4">
-
                 <div>
                   <p className="text-xs font-extrabold uppercase tracking-wider text-[#2563EB]">
                     {tipeAktif === 'bundling'
@@ -768,7 +753,6 @@ export default function PaketPage() {
 
             <div className="p-6 sm:p-7">
 
-              {/* TOTAL */}
               <div className="rounded-2xl bg-[#EFF6FF] p-4">
                 <p className="text-xs font-bold text-[#2563EB]">
                   Total Pembayaran
@@ -782,7 +766,6 @@ export default function PaketPage() {
                 </p>
               </div>
 
-              {/* PILIH METODE */}
               {!metodeTerpilih && (
                 <>
                   <div className="mt-6">
@@ -808,7 +791,6 @@ export default function PaketPage() {
                           className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-[#93C5FD] hover:bg-[#F8FBFF]"
                         >
                           <div className="flex items-center gap-3">
-
                             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EFF6FF] text-xs font-black text-[#2563EB]">
                               {metode.id ===
                               'qris'
@@ -843,7 +825,6 @@ export default function PaketPage() {
                 </>
               )}
 
-              {/* DETAIL PEMBAYARAN */}
               {metodeTerpilih && (
                 <div className="mt-6">
 
@@ -858,9 +839,7 @@ export default function PaketPage() {
 
                   <div className="rounded-2xl border border-[#BFDBFE] bg-[#F8FBFF] p-5">
 
-                    {/* METODE */}
                     <div className="flex items-center gap-3">
-
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#DBEAFE] text-xs font-black text-[#2563EB]">
                         {getMetode()?.id ===
                         'qris'
@@ -882,11 +861,9 @@ export default function PaketPage() {
                       </div>
                     </div>
 
-                    {/* QRIS */}
                     {metodeTerpilih ===
                     'qris' ? (
                       <div className="mt-5 text-center">
-
                         <img
                           src="/Qris.jpg"
                           alt="QRIS Pembayaran"
@@ -898,9 +875,7 @@ export default function PaketPage() {
                         </p>
                       </div>
                     ) : (
-                      /* TRANSFER / E-WALLET */
                       <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
-
                         <p className="text-xs font-bold text-slate-400">
                           Nomor Pembayaran
                         </p>
@@ -912,7 +887,6 @@ export default function PaketPage() {
                     )}
                   </div>
 
-                  {/* PERINGATAN */}
                   <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
                     <p className="text-sm font-extrabold text-amber-800">
                       Sudah melakukan pembayaran?
@@ -923,7 +897,6 @@ export default function PaketPage() {
                     </p>
                   </div>
 
-                  {/* KONFIRMASI */}
                   <button
                     onClick={
                       konfirmasiPembayaran
@@ -946,10 +919,7 @@ export default function PaketPage() {
         </div>
       )}
 
-      {/* ================================================= */}
       {/* POPUP PENDAFTARAN */}
-      {/* ================================================= */}
-
       {showPendaftaranModal &&
         paketPendaftaran && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 px-4 py-6 backdrop-blur-sm">
