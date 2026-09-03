@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '../utils/supabase'
 
@@ -97,6 +97,8 @@ function UjianContent() {
       localStorage.setItem(timerKey, String(waktuSelesai))
     }
 
+    const timerRef = { current: null as ReturnType<typeof setInterval> | null }
+
     const updateTimer = () => {
       const sisa = Math.max(
         0,
@@ -106,16 +108,24 @@ function UjianContent() {
       setWaktuTersisa(sisa)
 
       if (sisa <= 0) {
-        clearInterval(timer)
+        if (timerRef.current) {
+          clearInterval(timerRef.current)
+          timerRef.current = null
+        }
         handleSelesai(true)
       }
     }
 
     updateTimer()
 
-    const timer = setInterval(updateTimer, 1000)
+    timerRef.current = setInterval(updateTimer, 1000)
 
-    return () => clearInterval(timer)
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+    }
   }, [loading, soalList.length, showHasil, paketId])
 
   // =========================
