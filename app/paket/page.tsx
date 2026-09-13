@@ -37,19 +37,22 @@ const NOMOR_WA_ADMIN = '6285179821611'
 export default function PaketPage() {
   const [paketList, setPaketList] = useState<any[]>([])
   const [pembelianList, setPembelianList] = useState<any[]>([])
-
   const [bundlingList, setBundlingList] = useState<any[]>([])
   const [pembelianBundlingList, setPembelianBundlingList] = useState<any[]>([])
 
   const [showModal, setShowModal] = useState(false)
   const [tipeAktif, setTipeAktif] = useState<'paket' | 'bundling'>('paket')
+
   const [paketTerpilih, setPaketTerpilih] = useState<any>(null)
   const [bundlingTerpilih, setBundlingTerpilih] = useState<any>(null)
-  const [metodeTerpilih, setMetodeTerpilih] = useState<string | null>(null)
-  const [memproses, setMemproses] = useState(false)
 
-  const [showPendaftaranModal, setShowPendaftaranModal] = useState(false)
-  const [paketPendaftaran, setPaketPendaftaran] = useState<any>(null)
+  const [metodeTerpilih, setMetodeTerpilih] = useState<string>('')
+
+  const [namaPembeli, setNamaPembeli] = useState('')
+  const [emailPembeli, setEmailPembeli] = useState('')
+  const [noHpPembeli, setNoHpPembeli] = useState('')
+
+  const [memproses, setMemproses] = useState(false)
 
   const router = useRouter()
 
@@ -58,7 +61,6 @@ export default function PaketPage() {
   // =========================
 
   const fetchData = async () => {
-    // PAKET DIAMBIL SESUAI URUTAN DIBUAT
     const { data: paketData } = await supabase
       .from('paket')
       .select('*')
@@ -68,7 +70,6 @@ export default function PaketPage() {
       setPaketList(paketData)
     }
 
-    // BUNDLING DIAMBIL SESUAI URUTAN DIBUAT
     const { data: bundlingData } = await supabase
       .from('paket_bundling')
       .select('*')
@@ -173,231 +174,178 @@ export default function PaketPage() {
   }
 
   // =========================
-  // BUKA PEMBAYARAN PAKET
+  // BUKA MODAL PAKET
+  // TANPA LOGIN
   // =========================
 
   const bukaPembayaran = async (paket: any) => {
-    const { data: userData } = await supabase.auth.getUser()
-    const userId = userData.user?.id
-
-    if (!userId) {
-      alert('Silakan login terlebih dahulu.')
-      router.push('/login')
-      return
-    }
-
     setTipeAktif('paket')
     setPaketTerpilih(paket)
     setBundlingTerpilih(null)
-    setMetodeTerpilih(null)
+
+    setMetodeTerpilih('')
+    setNoHpPembeli('')
+
+    const { data: userData } = await supabase.auth.getUser()
+
+    if (userData.user) {
+      setNamaPembeli(
+        userData.user.user_metadata?.nama ||
+          userData.user.user_metadata?.name ||
+          ''
+      )
+
+      setEmailPembeli(
+        userData.user.email || ''
+      )
+    } else {
+      setNamaPembeli('')
+      setEmailPembeli('')
+    }
+
     setShowModal(true)
   }
 
   // =========================
-  // BUKA PEMBAYARAN BUNDLING
+  // BUKA MODAL BUNDLING
+  // TANPA LOGIN
   // =========================
 
   const bukaPembayaranBundling = async (bundling: any) => {
-    const { data: userData } = await supabase.auth.getUser()
-    const userId = userData.user?.id
-
-    if (!userId) {
-      alert('Silakan login terlebih dahulu.')
-      router.push('/login')
-      return
-    }
-
     setTipeAktif('bundling')
     setBundlingTerpilih(bundling)
     setPaketTerpilih(null)
-    setMetodeTerpilih(null)
+
+    setMetodeTerpilih('')
+    setNoHpPembeli('')
+
+    const { data: userData } = await supabase.auth.getUser()
+
+    if (userData.user) {
+      setNamaPembeli(
+        userData.user.user_metadata?.nama ||
+          userData.user.user_metadata?.name ||
+          ''
+      )
+
+      setEmailPembeli(
+        userData.user.email || ''
+      )
+    } else {
+      setNamaPembeli('')
+      setEmailPembeli('')
+    }
+
     setShowModal(true)
   }
 
   // =========================
-  // PILIH METODE
+  // PESAN
+  // LANGSUNG KE WHATSAPP
   // =========================
 
-  const pilihMetode = (metode: string) => {
-    setMetodeTerpilih(metode)
-  }
+  const kirimPesanWhatsApp = () => {
+    if (!noHpPembeli.trim()) {
+      alert('Silakan isi No HP terlebih dahulu.')
+      return
+    }
 
-  // =========================
-  // KONFIRMASI PEMBAYARAN
-  // =========================
+    if (!namaPembeli.trim()) {
+      alert('Silakan isi Nama terlebih dahulu.')
+      return
+    }
 
-  const konfirmasiPembayaran = async () => {
+    if (!emailPembeli.trim()) {
+      alert('Silakan isi Email terlebih dahulu.')
+      return
+    }
+
     if (!metodeTerpilih) {
       alert('Silakan pilih metode pembayaran terlebih dahulu.')
       return
     }
 
+    const item =
+      tipeAktif === 'paket'
+        ? paketTerpilih
+        : bundlingTerpilih
+
+    if (!item) return
+
+    const metode = METODE_BAYAR.find(
+      (m) => m.id === metodeTerpilih
+    )
+
+    const jenis =
+      tipeAktif === 'paket'
+        ? 'Paket'
+        : 'Bundling'
+
+    const pesan = `Halo admin, saya ingin membeli ${jenis}.
+
+Nama: ${namaPembeli}
+No HP: ${noHpPembeli}
+Email: ${emailPembeli}
+
+${jenis}: ${item.nama}
+Harga: Rp${Number(item.harga).toLocaleString('id-ID')}
+Metode Pembayaran: ${metode?.nama || '-'}
+
+Mohon diarahkan untuk proses pembelian selanjutnya. Terima kasih.`
+
+    const linkWhatsapp =
+      `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(
+        pesan
+      )}`
+
     setMemproses(true)
 
-    const { data: userData } = await supabase.auth.getUser()
-    const userId = userData.user?.id
-
-    if (!userId) {
-      setMemproses(false)
-      alert('Silakan login terlebih dahulu.')
-      router.push('/login')
-      return
-    }
-
-    // =========================
-    // PAKET BIASA
-    // =========================
-
-    if (tipeAktif === 'paket') {
-      if (!paketTerpilih) {
-        setMemproses(false)
-        return
-      }
-
-      const pembelian = getPembelian(paketTerpilih.id)
-
-      if (!pembelian) {
-        const { error } = await supabase
-          .from('pembelian')
-          .insert({
-            user_id: userId,
-            paket_id: paketTerpilih.id,
-            status: 'menunggu_konfirmasi',
-          })
-
-        if (error) {
-          alert(error.message)
-          setMemproses(false)
-          return
-        }
-      } else {
-        const { error } = await supabase
-          .from('pembelian')
-          .update({
-            status: 'menunggu_konfirmasi',
-          })
-          .eq('id', pembelian.id)
-
-        if (error) {
-          alert(error.message)
-          setMemproses(false)
-          return
-        }
-      }
-    }
-
-    // =========================
-    // BUNDLING
-    // =========================
-
-    if (tipeAktif === 'bundling') {
-      if (!bundlingTerpilih) {
-        setMemproses(false)
-        return
-      }
-
-      const pembelian = getPembelianBundling(
-        bundlingTerpilih.id
-      )
-
-      if (!pembelian) {
-        const { error } = await supabase
-          .from('pembelian_bundling')
-          .insert({
-            user_id: userId,
-            bundling_id: bundlingTerpilih.id,
-            status: 'menunggu_konfirmasi',
-          })
-
-        if (error) {
-          alert(error.message)
-          setMemproses(false)
-          return
-        }
-      } else {
-        const { error } = await supabase
-          .from('pembelian_bundling')
-          .update({
-            status: 'menunggu_konfirmasi',
-          })
-          .eq('id', pembelian.id)
-
-        if (error) {
-          alert(error.message)
-          setMemproses(false)
-          return
-        }
-      }
-    }
-
-    setShowModal(false)
-    setPaketTerpilih(null)
-    setBundlingTerpilih(null)
-    setMetodeTerpilih(null)
-
-    await fetchData()
+    window.open(
+      linkWhatsapp,
+      '_blank',
+      'noopener,noreferrer'
+    )
 
     setMemproses(false)
+    setShowModal(false)
   }
 
   // =========================
-  // TUTUP POPUP
+  // TUTUP MODAL
   // =========================
 
   const tutupModal = () => {
     setShowModal(false)
     setPaketTerpilih(null)
     setBundlingTerpilih(null)
-    setMetodeTerpilih(null)
+    setMetodeTerpilih('')
+    setNamaPembeli('')
+    setEmailPembeli('')
+    setNoHpPembeli('')
   }
 
   // =========================
-  // PENDAFTARAN PAKET GRATIS
+  // DAFTAR PAKET GRATIS
+  // LANGSUNG WHATSAPP
   // =========================
 
-  const bukaPendaftaran = async (paket: any) => {
-    const { data: userData } = await supabase.auth.getUser()
+  const bukaPendaftaran = (paket: any) => {
+    const pesan = `Halo admin, saya ingin mendaftar paket gratis.
 
-    if (!userData.user) {
-      alert('Silakan login terlebih dahulu.')
-      router.push('/login')
-      return
-    }
+Nama Paket: ${paket.nama}
 
-    setPaketPendaftaran(paket)
-    setShowPendaftaranModal(true)
-  }
+Saya ingin mendapatkan informasi mengenai syarat dan proses pendaftaran paket tersebut. Mohon diarahkan untuk proses selanjutnya. Terima kasih.`
 
-  const konfirmasiSyaratTerpenuhi = async () => {
-    if (!paketPendaftaran) return
+    const linkWhatsapp =
+      `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(
+        pesan
+      )}`
 
-    const { data: userData } = await supabase.auth.getUser()
-    const userId = userData.user?.id
-
-    if (!userId) return
-
-    setMemproses(true)
-
-    const { error } = await supabase
-      .from('pembelian')
-      .insert({
-        user_id: userId,
-        paket_id: paketPendaftaran.id,
-        status: 'menunggu_konfirmasi',
-      })
-
-    if (error) {
-      alert(error.message)
-      setMemproses(false)
-      return
-    }
-
-    setShowPendaftaranModal(false)
-    setPaketPendaftaran(null)
-
-    await fetchData()
-
-    setMemproses(false)
+    window.open(
+      linkWhatsapp,
+      '_blank',
+      'noopener,noreferrer'
+    )
   }
 
   // =========================
@@ -415,6 +363,7 @@ export default function PaketPage() {
 
   // =========================
   // MULAI UJIAN
+  // TETAP WAJIB LOGIN
   // =========================
 
   const handleMulaiUjian = async (paketId: string) => {
@@ -432,14 +381,8 @@ export default function PaketPage() {
   }
 
   // =========================
-  // GET METODE AKTIF
+  // ITEM AKTIF
   // =========================
-
-  const getMetode = () => {
-    return METODE_BAYAR.find(
-      (m) => m.id === metodeTerpilih
-    )
-  }
 
   const itemModalAktif =
     tipeAktif === 'paket'
@@ -455,7 +398,6 @@ export default function PaketPage() {
       <main className="min-h-screen bg-slate-50 px-5 py-8 sm:px-8 lg:px-12">
         <div className="mx-auto max-w-6xl">
 
-          {/* HEADER */}
           <div className="mb-7">
             <p className="text-sm font-extrabold uppercase tracking-wider text-[#2563EB]">
               Koleksi
@@ -471,7 +413,6 @@ export default function PaketPage() {
             </p>
           </div>
 
-          {/* LIST PAKET + BUNDLING */}
           {paketList.length === 0 &&
           bundlingList.length === 0 ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
@@ -486,7 +427,8 @@ export default function PaketPage() {
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
 
-              {/* KARTU BUNDLING */}
+              {/* BUNDLING */}
+
               {bundlingList.map((bundling) => {
                 const status =
                   getStatusBundling(bundling)
@@ -566,8 +508,7 @@ export default function PaketPage() {
                             bundling
                           )
                         }
-                        disabled={memproses}
-                        className="flex w-full items-center justify-between rounded-xl bg-[#2563EB] px-5 py-3.5 text-sm font-extrabold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="flex w-full items-center justify-between rounded-xl bg-[#2563EB] px-5 py-3.5 text-sm font-extrabold text-white transition hover:bg-[#1D4ED8]"
                       >
                         Beli Bundling
 
@@ -580,12 +521,14 @@ export default function PaketPage() {
                 )
               })}
 
-              {/* KARTU PAKET BIASA */}
+              {/* PAKET */}
+
               {paketList.map((paket) => {
                 const gratis =
                   Number(paket.harga) === 0
 
-                const status = getStatus(paket)
+                const status =
+                  getStatus(paket)
 
                 return (
                   <div
@@ -679,7 +622,7 @@ export default function PaketPage() {
                           )}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-extrabold text-emerald-700 transition hover:bg-emerald-100"
+                          className="flex w-full items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-extrabold text-emerald-700 transition hover:bg-emerald-100"
                         >
                           Hubungi Admin
                         </a>
@@ -703,12 +646,9 @@ export default function PaketPage() {
                         onClick={() =>
                           bukaPembayaran(paket)
                         }
-                        disabled={memproses}
-                        className="flex w-full items-center justify-between rounded-xl bg-[#2563EB] px-5 py-3.5 text-sm font-extrabold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="flex w-full items-center justify-between rounded-xl bg-[#2563EB] px-5 py-3.5 text-sm font-extrabold text-white transition hover:bg-[#1D4ED8]"
                       >
-                        {memproses
-                          ? 'Memproses...'
-                          : 'Beli Paket'}
+                        Beli Paket
 
                         <span className="text-lg">
                           →
@@ -723,7 +663,8 @@ export default function PaketPage() {
         </div>
       </main>
 
-      {/* POPUP PEMBAYARAN */}
+      {/* MODAL PEMBELIAN */}
+
       {showModal && itemModalAktif && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 px-4 py-6 backdrop-blur-sm">
           <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white shadow-2xl">
@@ -766,225 +707,144 @@ export default function PaketPage() {
                 </p>
               </div>
 
-              {!metodeTerpilih && (
-                <>
-                  <div className="mt-6">
-                    <h3 className="text-sm font-extrabold text-slate-900">
-                      Pilih Metode Pembayaran
-                    </h3>
+              {/* DATA PEMBELI */}
 
-                    <p className="mt-1 text-xs font-medium text-slate-500">
-                      Pilih salah satu metode pembayaran berikut.
-                    </p>
-                  </div>
+              <div className="mt-6 space-y-4">
 
-                  <div className="mt-4 space-y-3">
+                <div>
+                  <label className="mb-1.5 block text-xs font-extrabold text-slate-700">
+                    No HP
+                  </label>
+
+                  <input
+                    type="tel"
+                    value={noHpPembeli}
+                    onChange={(e) =>
+                      setNoHpPembeli(
+                        e.target.value
+                      )
+                    }
+                    placeholder="Masukkan nomor HP"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-extrabold text-slate-700">
+                    Nama
+                  </label>
+
+                  <input
+                    type="text"
+                    value={namaPembeli}
+                    onChange={(e) =>
+                      setNamaPembeli(
+                        e.target.value
+                      )
+                    }
+                    placeholder="Masukkan nama"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-extrabold text-slate-700">
+                    Email
+                  </label>
+
+                  <input
+                    type="email"
+                    value={emailPembeli}
+                    onChange={(e) =>
+                      setEmailPembeli(
+                        e.target.value
+                      )
+                    }
+                    placeholder="Masukkan email"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
+                  />
+                </div>
+
+                {/* METODE PEMBAYARAN DROPDOWN */}
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-extrabold text-slate-700">
+                    Metode Pembayaran
+                  </label>
+
+                  <select
+                    value={metodeTerpilih}
+                    onChange={(e) =>
+                      setMetodeTerpilih(
+                        e.target.value
+                      )
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
+                  >
+                    <option value="">
+                      Pilih metode pembayaran
+                    </option>
+
                     {METODE_BAYAR.map(
                       (metode) => (
-                        <button
+                        <option
                           key={metode.id}
-                          onClick={() =>
-                            pilihMetode(
-                              metode.id
-                            )
-                          }
-                          className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-[#93C5FD] hover:bg-[#F8FBFF]"
+                          value={metode.id}
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EFF6FF] text-xs font-black text-[#2563EB]">
-                              {metode.id ===
-                              'qris'
-                                ? 'QR'
-                                : metode.nama.slice(
-                                    0,
-                                    2
-                                  )}
-                            </div>
-
-                            <div>
-                              <p className="text-sm font-extrabold text-slate-800">
-                                {metode.nama}
-                              </p>
-
-                              <p className="mt-0.5 text-xs font-medium text-slate-500">
-                                {metode.id ===
-                                'qris'
-                                  ? 'Pembayaran melalui QRIS'
-                                  : 'Transfer / pembayaran langsung'}
-                              </p>
-                            </div>
-                          </div>
-
-                          <span className="text-lg font-bold text-slate-400">
-                            →
-                          </span>
-                        </button>
+                          {metode.nama}
+                        </option>
                       )
                     )}
-                  </div>
-                </>
-              )}
+                  </select>
+                </div>
 
+              </div>
+
+              {/* INFO PEMBAYARAN */}
               {metodeTerpilih && (
-                <div className="mt-6">
+                <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs font-bold text-slate-400">
+                    Detail Pembayaran
+                  </p>
 
-                  <button
-                    onClick={() =>
-                      setMetodeTerpilih(null)
-                    }
-                    className="mb-4 text-xs font-bold text-[#2563EB] hover:underline"
-                  >
-                    ← Ganti metode pembayaran
-                  </button>
-
-                  <div className="rounded-2xl border border-[#BFDBFE] bg-[#F8FBFF] p-5">
-
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#DBEAFE] text-xs font-black text-[#2563EB]">
-                        {getMetode()?.id ===
-                        'qris'
-                          ? 'QR'
-                          : getMetode()?.nama.slice(
-                              0,
-                              2
-                            )}
-                      </div>
-
-                      <div>
-                        <p className="text-xs font-bold text-slate-400">
-                          Bayar menggunakan
-                        </p>
-
-                        <p className="text-base font-extrabold text-slate-900">
-                          {getMetode()?.nama}
-                        </p>
-                      </div>
-                    </div>
-
-                    {metodeTerpilih ===
-                    'qris' ? (
-                      <div className="mt-5 text-center">
-                        <img
-                          src="/Qris.jpg"
-                          alt="QRIS Pembayaran"
-                          className="mx-auto h-64 w-64 rounded-xl border border-slate-200 bg-white object-contain p-3"
-                        />
-
-                        <p className="mt-4 text-xs font-medium leading-5 text-slate-500">
-                          Scan QRIS di atas menggunakan aplikasi pembayaran yang mendukung QRIS.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
-                        <p className="text-xs font-bold text-slate-400">
-                          Nomor Pembayaran
-                        </p>
-
-                        <p className="mt-2 text-base font-extrabold leading-6 text-slate-900">
-                          {getMetode()?.nomor}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                    <p className="text-sm font-extrabold text-amber-800">
-                      Sudah melakukan pembayaran?
-                    </p>
-
-                    <p className="mt-1 text-xs font-medium leading-5 text-amber-700">
-                      Klik tombol di bawah untuk mengirim konfirmasi pembayaran kepada admin.
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={
-                      konfirmasiPembayaran
-                    }
-                    disabled={memproses}
-                    className="mt-4 w-full rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {memproses
-                      ? 'Mengirim Konfirmasi...'
-                      : 'Konfirmasi Pembayaran'}
-                  </button>
-
-                  <p className="mt-3 text-center text-[11px] font-medium leading-5 text-slate-400">
-                    Setelah konfirmasi, pembayaran akan diperiksa oleh admin.
+                  <p className="mt-2 text-sm font-extrabold text-slate-900">
+                    {METODE_BAYAR.find(
+                      (m) =>
+                        m.id ===
+                        metodeTerpilih
+                    )?.nomor}
                   </p>
                 </div>
               )}
+
+              <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <p className="text-sm font-extrabold text-amber-800">
+                  Sudah melakukan pembayaran?
+                </p>
+
+                <p className="mt-1 text-xs font-medium leading-5 text-amber-700">
+                  Klik tombol di bawah untuk mengirim konfirmasi pembayaran kepada admin.
+                </p>
+              </div>
+
+              {/* TOMBOL PESAN */}
+
+              <button
+                onClick={kirimPesanWhatsApp}
+                disabled={memproses}
+                className="mt-4 w-full rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Pesan
+              </button>
+
+              <p className="mt-3 text-center text-[11px] font-medium leading-5 text-slate-400">
+                Setelah konfirmasi, pembayaran akan diperiksa oleh admin.
+              </p>
+
             </div>
           </div>
         </div>
       )}
-
-      {/* POPUP PENDAFTARAN */}
-      {showPendaftaranModal &&
-        paketPendaftaran && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 px-4 py-6 backdrop-blur-sm">
-
-            <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white shadow-2xl">
-
-              <div className="border-b border-slate-100 px-6 py-5 sm:px-7">
-                <div className="flex items-start justify-between gap-4">
-
-                  <div>
-                    <p className="text-xs font-extrabold uppercase tracking-wider text-amber-600">
-                      Syarat Pendaftaran
-                    </p>
-
-                    <h2 className="mt-1 text-xl font-extrabold text-slate-900">
-                      {paketPendaftaran.nama}
-                    </h2>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setShowPendaftaranModal(
-                        false
-                      )
-                      setPaketPendaftaran(null)
-                    }}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-lg font-bold text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
-                  >
-                    ×
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-6 sm:p-7">
-
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-                  <p className="text-sm font-extrabold text-amber-800">
-                    Syarat yang harus dipenuhi:
-                  </p>
-
-                  <p className="mt-2 whitespace-pre-line text-sm font-medium leading-6 text-amber-700">
-                    {paketPendaftaran.syarat_pendaftaran ||
-                      'Tidak ada syarat khusus.'}
-                  </p>
-                </div>
-
-                <button
-                  onClick={
-                    konfirmasiSyaratTerpenuhi
-                  }
-                  disabled={memproses}
-                  className="mt-5 w-full rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {memproses
-                    ? 'Mengirim...'
-                    : 'Saya Sudah Memenuhi Syarat'}
-                </button>
-
-                <p className="mt-3 text-center text-[11px] font-medium leading-5 text-slate-400">
-                  Setelah ini, pendaftaran kamu akan diperiksa oleh admin.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
     </>
   )
 }
