@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '../utils/supabase'
 
@@ -68,7 +68,31 @@ function UjianContent() {
         .order('id', { ascending: true })
 
       if (!soalError && soalData) {
-        setSoalList(soalData)
+        // URUTAN: TWK → TIU → TKP
+        const urutanKategori = {
+          TWK: 1,
+          TIU: 2,
+          TKP: 3,
+        }
+
+        const soalTerurut = [...soalData].sort((a, b) => {
+          const kategoriA = String(a.kategori || '').toUpperCase()
+          const kategoriB = String(b.kategori || '').toUpperCase()
+
+          const urutanA =
+            urutanKategori[kategoriA as keyof typeof urutanKategori] || 99
+          const urutanB =
+            urutanKategori[kategoriB as keyof typeof urutanKategori] || 99
+
+          if (urutanA !== urutanB) {
+            return urutanA - urutanB
+          }
+
+          // Jika kategorinya sama, tetap berdasarkan ID
+          return Number(a.id) - Number(b.id)
+        })
+
+        setSoalList(soalTerurut)
       }
 
       setLoading(false)
@@ -97,7 +121,9 @@ function UjianContent() {
       localStorage.setItem(timerKey, String(waktuSelesai))
     }
 
-    const timerRef = { current: null as ReturnType<typeof setInterval> | null }
+    const timerRef = {
+      current: null as ReturnType<typeof setInterval> | null,
+    }
 
     const updateTimer = () => {
       const sisa = Math.max(
