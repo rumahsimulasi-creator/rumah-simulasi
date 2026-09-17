@@ -68,29 +68,26 @@ function UjianContent() {
         .order('id', { ascending: true })
 
       if (!soalError && soalData) {
-        // URUTAN: TWK → TIU → TKP
-        const urutanKategori = {
-          TWK: 1,
-          TIU: 2,
-          TKP: 3,
-        }
+        // URUTAN WAJIB: SEMUA TWK → SEMUA TIU → SEMUA TKP
+        // Tidak menggunakan urutan ID untuk menentukan kategori.
+        const getKategori = (soal: any) =>
+          String(soal.kategori || '').trim().toUpperCase()
 
-        const soalTerurut = [...soalData].sort((a, b) => {
-          const kategoriA = String(a.kategori || '').toUpperCase()
-          const kategoriB = String(b.kategori || '').toUpperCase()
+        const urutkanId = (a: any, b: any) => Number(a.id) - Number(b.id)
 
-          const urutanA =
-            urutanKategori[kategoriA as keyof typeof urutanKategori] || 99
-          const urutanB =
-            urutanKategori[kategoriB as keyof typeof urutanKategori] || 99
+        const soalTWK = soalData
+          .filter((soal) => getKategori(soal) === 'TWK')
+          .sort(urutkanId)
 
-          if (urutanA !== urutanB) {
-            return urutanA - urutanB
-          }
+        const soalTIU = soalData
+          .filter((soal) => getKategori(soal) === 'TIU')
+          .sort(urutkanId)
 
-          // Jika kategorinya sama, tetap berdasarkan ID
-          return Number(a.id) - Number(b.id)
-        })
+        const soalTKP = soalData
+          .filter((soal) => getKategori(soal) === 'TKP')
+          .sort(urutkanId)
+
+        const soalTerurut = [...soalTWK, ...soalTIU, ...soalTKP]
 
         setSoalList(soalTerurut)
       }
